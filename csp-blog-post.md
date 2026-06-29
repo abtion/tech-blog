@@ -135,6 +135,16 @@ One thing worth knowing: permissions are **not** automatically populated when yo
 
 We reported this to CookieInformation in November 2025 and attached a working template export. Their guide has not been updated since. If you are using CookieInformation with GTM, you will need to make this conversion yourself.
 
+**How to tell whether your GTM container uses `eval`:** open your container script directly in the browser (`https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX`) and look for this line near the top:
+
+```js
+w[g].e=function(s){return eval(s);};
+```
+
+If it is there, your container has at least one Custom JavaScript Variable and will require `'unsafe-eval'` under a strict CSP.
+
+![GTM container script showing the eval wrapper function](images/gtm-eval-in-container.png)
+
 The same pattern applies to any Custom JavaScript Variable in your container: identify the `window` method or property it calls, replace the direct call with `callInWindow` or `copyFromWindow`, and declare the corresponding permission. The full list of sandboxed APIs is in the [GTM template API reference](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript). Common replacements: `copyFromWindow` for reading globals, `copyFromDataLayer` for dataLayer reads, and `getUrl` for URL parts.
 
 ## Recommendations
