@@ -9,17 +9,24 @@ XSS attacks work by injecting malicious scripts into a trusted page. Without CSP
 A modern policy using `'strict-dynamic'`[^strict-dynamic] lets you whitelist scripts by nonce or hash, and those trusted scripts can load further scripts dynamically, without opening up entire domains:
 
 ```
-Content-Security-Policy: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; connect-src 'self'; object-src 'none'; base-uri 'none'
+Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
 ```
 
-This is considerably stronger than `script-src 'self'`, which still permits any script hosted on your own origin — including ones an attacker could influence. Note that `'strict-dynamic'` only propagates trust for *script loading* — it has no effect on `connect-src`. Adding `connect-src 'self'` ensures that `fetch()` and XHR calls from dynamically-loaded scripts are also restricted to your own origin. Extend it with specific third-party API origins as needed.
+`default-src 'none'` is the foundation: every resource type is blocked unless explicitly permitted. The remaining directives carve out only what a typical app needs. A few things worth noting:
+
+- `'strict-dynamic'` only propagates trust for *script loading* — it has no effect on `connect-src`. Scripts (including dynamically-loaded ones) can only make `fetch()` and XHR calls to your own origin unless you extend `connect-src` with specific third-party API origins.
+- `style-src 'unsafe-inline'` is a common addition when frameworks inject inline styles; accept it as a known trade-off if needed.
+- `frame-ancestors 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
+- `object-src 'none'` and `base-uri 'none'` are technically redundant with `default-src 'none'`, but keeping them explicit is a common convention for clarity.
+
+This is considerably stronger than `script-src 'self'`, which still permits any script hosted on your own origin — including ones an attacker could influence.
 
 ## Start in report-only mode
 
 Before enforcing a policy, deploy it in observation mode so you can see what it *would* block without breaking anything:
 
 ```
-Content-Security-Policy-Report-Only: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; connect-src 'self'; object-src 'none'; base-uri 'none'; report-to csp-endpoint
+Content-Security-Policy-Report-Only: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; report-to csp-endpoint
 ```
 
 The `report-to`[^report-to] directive names a reporting group you define via the `Reporting-Endpoints` response header:
