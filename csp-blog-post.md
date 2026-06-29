@@ -1,12 +1,23 @@
 # Implement Content-Security-Policy — and what to expect when you do
 
-At Abtion, we recommend that web application we build for clients includes a `Content-Security-Policy` (CSP) header. CSP is one of the browser's strongest defences against cross-site scripting (XSS) — a bug class that remains common and damaging on the web. A well-crafted policy tells the browser exactly which scripts, styles, and resources are permitted to load, and blocks everything else.
+CSP is widely deployed but rarely effective. Research consistently finds that around 87% of sites using a `Content-Security-Policy` header include `'unsafe-inline'` in `script-src` — and only about 2% have a policy strong enough to meaningfully block XSS.[^csp-stats] The header is there; the protection largely is not.
 
-## Why CSP matters
+The reason is not carelessness. It is that removing `'unsafe-inline'` and `'unsafe-eval'` breaks things — third-party consent banners, tag managers, admin UIs — and the fixes are not obvious. This post is about what it actually takes to get there, and why it is worth it.
 
-XSS attacks work by injecting malicious scripts into a trusted page. Without CSP, the browser has no way to distinguish your code from an attacker's. CSP significantly reduces exploitability by restricting which scripts may run — but it is defense-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs.
+## What `unsafe-*` costs you — and what you gain by removing it
 
-A modern policy using `'strict-dynamic'`[^strict-dynamic] lets you whitelist scripts by nonce or hash, and those trusted scripts can load further scripts dynamically, without opening up entire domains:
+`'unsafe-inline'` in `script-src` allows any inline script on the page to execute. That includes the ones an attacker injected. It does not matter how the injection happened — a reflected parameter, a stored payload, a compromised dependency. If `'unsafe-inline'` is present, CSP will not stop it.
+
+`'unsafe-eval'` is similarly corrosive: it permits `eval()`, `new Function()`, and similar constructs, which are the classic vehicle for turning injected strings into executing code.
+
+The common alternative — enumerating trusted script domains in `script-src` — is better than `'unsafe-inline'` but still leaves you exposed to any script hosted on those domains, including ones an attacker could place there.
+
+**The payoff for eliminating `'unsafe-*'` from `script-src` is `'strict-dynamic'`[^strict-dynamic].** Once inline scripts and eval are off the table, you can use a nonce-based policy with `'strict-dynamic'`, which is considerably simpler to operate than the alternatives:
+
+- No domain allowlist to maintain. You do not need to enumerate every CDN, analytics endpoint, or third-party library host.
+- Minimal nonce propagation. You attach a nonce to your entry-point scripts; `'strict-dynamic'` automatically extends trust to any scripts they load dynamically, without you having to touch them.
+
+A policy that gets you there:
 
 ```
 Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
@@ -19,7 +30,7 @@ Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict
 - `frame-ancestors 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
 - `object-src 'none'` and `base-uri 'none'` are technically redundant with `default-src 'none'`, but keeping them explicit is a common convention for clarity.
 
-This is considerably stronger than `script-src 'self'`, which still permits any script hosted on your own origin — including ones an attacker could influence.
+CSP is defense-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs. But a policy like this makes XSS dramatically harder to exploit.
 
 ## Start in report-only mode
 
@@ -173,6 +184,8 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 - Gate any `injectScript()` calls behind that check. Your users' sites will thank you.
 
 ---
+
+[^csp-stats]: Google Research found that 87% of sites deploying CSP include `'unsafe-inline'` in `script-src`. A BitSight study covering over 9 billion HTTP responses found only ~2% of CSP deployments could be considered meaningfully restrictive. See also [csper.io: No More unsafe-inline](https://csper.io/blog/no-more-unsafe-inline).
 
 [^strict-dynamic]: `'strict-dynamic'` is [well-supported across modern browsers](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can still include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore those fallbacks, while older browsers will use them.
 
