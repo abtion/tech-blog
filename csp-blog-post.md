@@ -61,6 +61,73 @@ This noise problem is solvable on the extension side. Extensions that inject inl
 
 Privacy Badger, the open-source tracker-blocking extension from the EFF, [recently shipped exactly this](https://github.com/EFForg/privacybadger/commit/4b42c2eafc2319d1aa2cfe1e4cf36cc0889b12b5). Four of its detection features were injecting inline scripts regardless of the page's CSP. The fix reads the `Content-Security-Policy` response header, parses the `script-src` (or `default-src`) directive — handling `'unsafe-inline'`, nonces, hashes, and `'strict-dynamic'` — and skips injection when the policy disallows it. A good example of an extension being a respectful citizen of the pages it runs on. (Note: it handles CSP delivered via response headers; CSP in `<meta>` tags is out of scope for the extension API approach.)
 
+## A real-world example: WordPress with CookieInformation and GTM
+
+Here is what we ran into implementing CSP on a WordPress project.
+
+### CookieInformation
+
+The CookieInformation consent popup ships with inline event handlers throughout its template HTML — `onclick="CookieInformation.declineAllCategories()"`, `href="javascript:CookieConsent.renew();"`, and so on. A policy without `'unsafe-inline'` blocks all of these silently, leaving a banner with buttons that do nothing.
+
+[CookieInformation documents the fix](https://support.cookieinformation.com/articles/customization/consent-popup/csp-implementation/): strip the inline handlers from the template and wire the same behaviour up using `addEventListener` in your own external script. In practice it looked like this — before:
+
+```html
+<button id="declineButton" onclick="CookieInformation.declineAllCategories()">
+  Decline
+</button>
+```
+
+After:
+
+```html
+<button id="declineButton">Decline</button>
+```
+
+```js
+document.getElementById('declineButton')
+  .addEventListener('click', () => CookieInformation.declineAllCategories());
+```
+
+Every button and anchor with an inline handler needed the same treatment. Expect a handful of follow-up fixes as you discover edge cases in the live template — elements that don't exist on every page, category checkboxes that render dynamically, and so on.
+
+You also need to add two extra directives to allow the popup to load its policy iframe and contact its API:
+
+```
+frame-src   'self' https://policy.app.cookieinformation.com/;
+connect-src 'self' https://policy.app.cookieinformation.com/
+                   https://consent.app.cookieinformation.com/;
+```
+
+### Google Tag Manager
+
+GTM's container snippet accepts a `nonce` attribute and propagates it to any scripts it injects, so the container itself plays nicely with a nonce-based policy. The problem is **Custom JavaScript Variables**.
+
+GTM evaluates Custom JavaScript Variables using `eval()`. CSP blocks `eval()` unless `'unsafe-eval'` is present in `script-src` — and adding `'unsafe-eval'` largely defeats the point of having CSP in the first place.
+
+The [GTM documentation](https://developers.google.com/tag-platform/security/guides/csp#custom_javascript_variables) mentions the problem but is sparse on how to fix it. The answer is to replace Custom JavaScript Variables with **Custom Templates**, which run in GTM's sandboxed JavaScript environment and do not require `eval`.
+
+A Custom JavaScript Variable that reads a value from `window` might look like this:
+
+```js
+// Custom JavaScript Variable — breaks under CSP
+function() {
+  return window.pageData && window.pageData.userId;
+}
+```
+
+The Custom Template equivalent:
+
+```js
+// Custom Template — works under CSP
+const copyFromWindow = require('copyFromWindow');
+const pageData = copyFromWindow('pageData');
+return pageData ? pageData.userId : undefined;
+```
+
+In the template's **Permissions** tab, add an `Accesses Global Variables` permission for `pageData` with read access. GTM will not execute the template without a matching permission declaration.
+
+The migration is mechanical but requires going through each Custom JavaScript Variable in the container and rewriting it using the [sandboxed JavaScript APIs](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript). Common replacements: `copyFromWindow` for globals, `copyFromDataLayer` for dataLayer reads, `getUrl` for URL parts, and `require('dom')` (with a declared permission) for DOM access.
+
 ## Recommendations
 
 **For our clients:**
