@@ -1,6 +1,6 @@
 # Implement Content-Security-Policy — and what to expect when you do
 
-CSP is widely deployed but rarely effective. Research consistently finds that around 87% of sites using a `Content-Security-Policy` header include `'unsafe-inline'` in `script-src` — and only about 2% have a policy strong enough to meaningfully block XSS.[^csp-stats] The header is there; the protection largely is not.
+CSP is widely deployed but rarely effective. A Google Research study analysing CSP deployments across 1.68 million hosts found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no benefit against XSS at all.[^csp-stats] The header is there; the protection largely is not.
 
 The reason is not carelessness. It is that removing `'unsafe-inline'` and `'unsafe-eval'` breaks things — third-party consent banners, tag managers, admin UIs — and the fixes are not obvious. This post is about what it actually takes to get there, and why it is worth it.
 
@@ -185,7 +185,7 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 
 ---
 
-[^csp-stats]: Google Research found that 87% of sites deploying CSP include `'unsafe-inline'` in `script-src`. A BitSight study covering over 9 billion HTTP responses found only ~2% of CSP deployments could be considered meaningfully restrictive. See also [csper.io: No More unsafe-inline](https://csper.io/blog/no-more-unsafe-inline).
+[^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [research.google](https://research.google/pubs/csp-is-dead-long-live-csp-on-the-insecurity-of-whitelists-and-the-future-of-content-security-policy/). This is also the paper that proposed `'strict-dynamic'`.
 
 [^strict-dynamic]: `'strict-dynamic'` is [well-supported across modern browsers](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can still include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore those fallbacks, while older browsers will use them.
 
