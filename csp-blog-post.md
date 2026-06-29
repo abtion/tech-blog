@@ -104,14 +104,14 @@ GTM's container snippet accepts a `nonce` attribute and propagates it to any scr
 
 GTM evaluates Custom JavaScript Variables using `eval()`. CSP blocks `eval()` unless `'unsafe-eval'` is present in `script-src` — and adding `'unsafe-eval'` largely defeats the point of having CSP in the first place.
 
-The [GTM documentation](https://developers.google.com/tag-platform/security/guides/csp#custom_javascript_variables) mentions the problem but is sparse on how to fix it. The answer is to replace Custom JavaScript Variables with **Custom Templates**, which run in GTM's sandboxed JavaScript environment and do not require `eval`.
+The [GTM documentation](https://developers.google.com/tag-platform/security/guides/csp#custom_javascript_variables) explicitly names **Custom Templates** as the recommended alternative. They run in GTM's sandboxed JavaScript environment and do not require `eval`. What the documentation does not do is show you how to migrate.
 
-A Custom JavaScript Variable that reads a value from `window` might look like this:
+Here is a concrete example. CookieInformation's [GTM integration guide](https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager) instructs you to create a Custom JavaScript Variable per consent category:
 
 ```js
 // Custom JavaScript Variable — breaks under CSP
 function() {
-  return window.pageData && window.pageData.userId;
+  return CookieInformation.getConsentGivenFor('cookie_cat_functional');
 }
 ```
 
@@ -119,14 +119,19 @@ The Custom Template equivalent:
 
 ```js
 // Custom Template — works under CSP
-const copyFromWindow = require('copyFromWindow');
-const pageData = copyFromWindow('pageData');
-return pageData ? pageData.userId : undefined;
+const queryPermission = require('queryPermission');
+const callInWindow = require('callInWindow');
+
+if (queryPermission('access_globals', 'execute', 'CookieInformation.getConsentGivenFor')) {
+  return callInWindow('CookieInformation.getConsentGivenFor', 'cookie_cat_functional');
+}
 ```
 
-In the template's **Permissions** tab, add an `Accesses Global Variables` permission for `pageData` with read access. GTM will not execute the template without a matching permission declaration.
+In the template's **Permissions** tab, declare an `Accesses Global Variables` permission for `CookieInformation.getConsentGivenFor` with **execute** access. GTM will refuse to run the template without a matching permission entry, and `queryPermission` will return `false` at runtime if the permission is absent or misconfigured.
 
-The migration is mechanical but requires going through each Custom JavaScript Variable in the container and rewriting it using the [sandboxed JavaScript APIs](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript). Common replacements: `copyFromWindow` for globals, `copyFromDataLayer` for dataLayer reads, `getUrl` for URL parts, and `require('dom')` (with a declared permission) for DOM access.
+We reported this to CookieInformation in November 2025 and attached a working template export. Their guide has not been updated since. If you are using CookieInformation with GTM, you will need to make this conversion yourself.
+
+The same pattern applies to any Custom JavaScript Variable in your container: identify the `window` method or property it calls, replace the direct call with `callInWindow` or `copyFromWindow`, and declare the corresponding permission. The full list of sandboxed APIs is in the [GTM template API reference](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript). Common replacements: `copyFromWindow` for reading globals, `copyFromDataLayer` for dataLayer reads, and `getUrl` for URL parts.
 
 ## Recommendations
 
