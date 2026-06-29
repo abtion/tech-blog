@@ -1,6 +1,6 @@
 # Implement Content-Security-Policy — and what to expect when you do
 
-CSP is widely deployed but rarely effective. A 2016 Google Research study found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no XSS benefit at all.[^csp-stats] A decade on, a June 2026 crawl of the Tranco Top 1 Million sites tells a similar story: of the 170,057 sites now sending a CSP header, **46.8% still contain `'unsafe-inline'`** and 41.9% contain `'unsafe-eval'` — and only 1.6% use `'strict-dynamic'`.[^csp-2026] The underlying problem — third-party tools, legacy scripts, and CMS platforms defaulting to `'unsafe-inline'` — has not gone away.
+CSP is widely deployed but rarely effective. A 2016 Google Research study found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no XSS benefit at all.[^csp-stats] That same paper proposed `'strict-dynamic'` as the solution: a directive that lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. `'strict-dynamic'` has been supported across Chrome, Firefox, and Safari since March 2022 — yet a June 2026 crawl of the Tranco Top 1 Million sites found that of 170,057 sites with a CSP, **46.8% still contain `'unsafe-inline'`** and only 1.6% use `'strict-dynamic'`.[^csp-2026] The underlying problem — third-party tools, legacy scripts, and CMS platforms defaulting to `'unsafe-inline'` — has not gone away.
 
 The reason is not carelessness. It is that removing `'unsafe-inline'` and `'unsafe-eval'` breaks things — third-party consent banners, tag managers, admin UIs — and the fixes are not obvious. This post is about what it actually takes to get there, and why it is worth it.
 
@@ -185,10 +185,10 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 
 ---
 
-[^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [Full PDF](https://dl.acm.org/doi/pdf/10.1145/2976749.2978363). This is also the paper that proposed `'strict-dynamic'`.
+[^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [Full PDF](https://dl.acm.org/doi/pdf/10.1145/2976749.2978363).
 
 [^csp-2026]: Scott Helme. *Top 1 Million Analysis — June 2026: Ten Years of Web Security*. [scotthelme.co.uk](https://scotthelme.co.uk/top-1-million-analysis-june-2026-ten-years-of-web-security/). Crawl of 819,002 responding sites from the Tranco Top 1 Million list. Of 170,057 sites with a CSP: 46.8% use `'unsafe-inline'`, 41.9% use `'unsafe-eval'`, 24.7% use a nonce, 1.6% use `'strict-dynamic'`.
 
-[^strict-dynamic]: `'strict-dynamic'` is [well-supported across modern browsers](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can still include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore those fallbacks, while older browsers will use them.
+[^strict-dynamic]: `'strict-dynamic'` was supported in Chrome and Firefox from 2016–2017, with Safari adding support in version 15.4 (March 2022), making it universally available across all major browsers. See [caniuse](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore them, while older browsers will use them.
 
 [^report-to]: `report-to` reached broad browser support around 2022, with Firefox adding support in version 149 (March 2026). See [caniuse](https://caniuse.com/mdn-http_headers_content-security-policy_report-to). This is why keeping `report-uri` alongside `report-to` remains worthwhile in the interim.
