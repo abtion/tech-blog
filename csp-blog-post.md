@@ -107,7 +107,7 @@ In practice you have two options:
 - **Scope the policy to the public site only.** Apply a strict CSP on the front-end and use a looser policy (or none) for `/wp-admin`. Most of the security value is on the public-facing side anyway.
 - **Allowlist admin scripts by hash.** Possible in principle but maintenance-heavy — hashes change whenever WordPress updates.
 
-If full CSP coverage of wp-admin matters to your client, it is worth keeping an eye on the core tickets — but be aware that active development in this area appears to have stalled as of late 2025.
+If full CSP coverage of wp-admin matters to your client, consider contributing to the core tickets — testing patches, reviewing proposed solutions, or picking up stalled work. Active development in this area appears to have stalled as of late 2025, and community involvement is what moves WordPress core forward.
 
 ### Google Tag Manager
 
