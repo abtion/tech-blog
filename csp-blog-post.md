@@ -98,6 +98,17 @@ connect-src 'self' https://policy.app.cookieinformation.com/
                    https://consent.app.cookieinformation.com/;
 ```
 
+### WordPress admin
+
+One area we did not fully resolve: the WordPress admin UI itself. A strict CSP breaks a significant portion of wp-admin — the editor, media library, and various plugins all rely on inline scripts and `eval`. This is a known, long-standing issue in WordPress core, with active tickets tracking the work ([#59446](https://core.trac.wordpress.org/ticket/59446), [#39941](https://core.trac.wordpress.org/ticket/39941#comment:123)). Core committer [westonruter](https://core.trac.wordpress.org/ticket/39941#comment:123) has been the most active developer on it.
+
+In practice you have two options:
+
+- **Scope the policy to the public site only.** Apply a strict CSP on the front-end and use a looser policy (or none) for `/wp-admin`. Most of the security value is on the public-facing side anyway.
+- **Allowlist admin scripts by hash.** Possible in principle but maintenance-heavy — hashes change whenever WordPress updates.
+
+If full CSP coverage of wp-admin matters to your client, it is worth following the core tickets. The groundwork is being laid, but it is not there yet.
+
 ### Google Tag Manager
 
 GTM's container snippet accepts a `nonce` attribute and propagates it to any scripts it injects, so the container itself plays nicely with a nonce-based policy. The problem is **Custom JavaScript Variables**.
