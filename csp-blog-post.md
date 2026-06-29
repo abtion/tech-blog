@@ -6,7 +6,7 @@ At Abtion, we recommend that every web application we build for clients includes
 
 XSS attacks work by injecting malicious scripts into a trusted page. Without CSP, the browser has no way to distinguish your code from an attacker's. CSP significantly reduces exploitability by restricting which scripts may run — but it is defense-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs.
 
-A modern policy using `'strict-dynamic'` lets you whitelist scripts by nonce or hash, and those trusted scripts can load further scripts dynamically, without opening up entire domains:
+A modern policy using `'strict-dynamic'`[^strict-dynamic] lets you whitelist scripts by nonce or hash, and those trusted scripts can load further scripts dynamically, without opening up entire domains:
 
 ```
 Content-Security-Policy: script-src 'nonce-{random}' 'strict-dynamic'; object-src 'none'; base-uri 'none'
@@ -22,7 +22,7 @@ Before enforcing a policy, deploy it in observation mode so you can see what it 
 Content-Security-Policy-Report-Only: script-src 'nonce-{random}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; report-to csp-endpoint
 ```
 
-The `report-to` directive names a reporting group you define via the `Reporting-Endpoints` response header:
+The `report-to`[^report-to] directive names a reporting group you define via the `Reporting-Endpoints` response header:
 
 ```
 Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sentry_key=<key>"
@@ -67,3 +67,9 @@ Privacy Badger, the open-source tracker-blocking extension from the EFF, [recent
 - Read the `Content-Security-Policy` response header in your `webRequest.onHeadersReceived` listener.
 - Record whether inline scripts are permitted per frame.
 - Gate any `injectScript()` calls behind that check. Your users' sites will thank you.
+
+---
+
+[^strict-dynamic]: `'strict-dynamic'` is [well-supported across modern browsers](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can still include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore those fallbacks, while older browsers will use them.
+
+[^report-to]: `report-to` reached broad browser support around 2022, with Firefox adding support in version 149 (March 2026). See [caniuse](https://caniuse.com/mdn-http_headers_content-security-policy_report-to). This is why keeping `report-uri` alongside `report-to` remains worthwhile in the interim.
