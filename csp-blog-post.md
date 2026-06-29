@@ -9,17 +9,17 @@ XSS attacks work by injecting malicious scripts into a trusted page. Without CSP
 A modern policy using `'strict-dynamic'`[^strict-dynamic] lets you whitelist scripts by nonce or hash, and those trusted scripts can load further scripts dynamically, without opening up entire domains:
 
 ```
-Content-Security-Policy: script-src 'nonce-{random}' 'strict-dynamic'; object-src 'none'; base-uri 'none'
+Content-Security-Policy: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; object-src 'none'; base-uri 'none'
 ```
 
-This is considerably stronger than `script-src 'self'`, which still permits any script hosted on your own origin — including ones an attacker could influence.
+This minimal, script-focused example is considerably stronger than `script-src 'self'`, which still permits any script hosted on your own origin — including ones an attacker could influence.
 
 ## Start in report-only mode
 
 Before enforcing a policy, deploy it in observation mode so you can see what it *would* block without breaking anything:
 
 ```
-Content-Security-Policy-Report-Only: script-src 'nonce-{random}' 'strict-dynamic'; object-src 'none'; base-uri 'none'; report-to csp-endpoint
+Content-Security-Policy-Report-Only: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; object-src 'none'; base-uri 'none'; report-to csp-endpoint
 ```
 
 The `report-to`[^report-to] directive names a reporting group you define via the `Reporting-Endpoints` response header:
@@ -46,11 +46,11 @@ In practice you'll see things like:
 - `blocked 'connect' from 'various domains'` — an extension is making requests to its own backend
 - `blocked 'font' from 'various domains'` — an extension injected UI that loads fonts from external origins
 
-These are not attacks and not your bugs. Filtering them out requires some manual triage: look at whether violations are appearing consistently across many different users and unrelated pages, correlate with the `script-sample`, `source-file`, and `blocked-uri` fields in the report, and be sceptical of anything that appears at high volume with no clear origin in your own codebase.
+These are often not vulnerabilities in your app and are frequently not actionable for the site owner. Filtering them out requires some manual triage: look at whether violations are appearing consistently across many different users and unrelated pages, correlate with the `script-sample`, `source-file`, and `blocked-uri` fields in the report, and be sceptical of anything that appears at high volume with no clear origin in your own codebase.
 
 ## What good extension authors do about it
 
-This noise problem is solvable on the extension side. Extensions should check the `Content-Security-Policy` response header before attempting to inject inline scripts, and skip the injection when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards.
+This noise problem is solvable on the extension side. Extensions that inject inline scripts or page-context DOM resources should check the `Content-Security-Policy` response header before attempting those injections, and skip them when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards.
 
 Privacy Badger, the open-source tracker-blocking extension from the EFF, [recently shipped exactly this](https://github.com/EFForg/privacybadger/commit/4b42c2eafc2319d1aa2cfe1e4cf36cc0889b12b5). Four of its detection features were injecting inline scripts regardless of the page's CSP. The fix reads the `Content-Security-Policy` response header, parses the `script-src` (or `default-src`) directive — handling `'unsafe-inline'`, nonces, hashes, and `'strict-dynamic'` — and skips injection when the policy disallows it. A good example of an extension being a respectful citizen of the pages it runs on. (Note: it handles CSP delivered via response headers; CSP in `<meta>` tags is out of scope for the extension API approach.)
 
@@ -65,7 +65,7 @@ Privacy Badger, the open-source tracker-blocking extension from the EFF, [recent
 **For extension authors:**
 
 - Read the `Content-Security-Policy` response header in your `webRequest.onHeadersReceived` listener.
-- Record whether inline scripts are permitted per frame.
+- Record whether inline scripts and page-context DOM injections are permitted per frame.
 - Gate any `injectScript()` calls behind that check. Your users' sites will thank you.
 
 ---
