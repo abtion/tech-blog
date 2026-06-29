@@ -1,6 +1,6 @@
 # Implement Content-Security-Policy — and what to expect when you do
 
-At Abtion, we recommend that every web application we build for clients includes a `Content-Security-Policy` (CSP) header. CSP is one of the browser's strongest defences against cross-site scripting (XSS) — a bug class that remains among the most common and damaging on the web. A well-crafted policy tells the browser exactly which scripts, styles, and resources are permitted to load, and blocks everything else.
+At Abtion, we recommend that web application we build for clients includes a `Content-Security-Policy` (CSP) header. CSP is one of the browser's strongest defences against cross-site scripting (XSS) — a bug class that remains common and damaging on the web. A well-crafted policy tells the browser exactly which scripts, styles, and resources are permitted to load, and blocks everything else.
 
 ## Why CSP matters
 
