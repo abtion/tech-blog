@@ -129,6 +129,10 @@ if (queryPermission('access_globals', 'execute', 'CookieInformation.getConsentGi
 
 In the template's **Permissions** tab, declare an `Accesses Global Variables` permission for `CookieInformation.getConsentGivenFor` with **execute** access. GTM will refuse to run the template without a matching permission entry, and `queryPermission` will return `false` at runtime if the permission is absent or misconfigured.
 
+![GTM Permissions tab showing CookieInformation.getConsentGivenFor with execute: true](images/gtm-permissions-tab.png)
+
+One thing worth knowing: permissions are **not** automatically populated when you paste in the template code — you have to add the key manually. If you skip this step the template silently returns `undefined`, which is easy to miss in testing.
+
 We reported this to CookieInformation in November 2025 and attached a working template export. Their guide has not been updated since. If you are using CookieInformation with GTM, you will need to make this conversion yourself.
 
 The same pattern applies to any Custom JavaScript Variable in your container: identify the `window` method or property it calls, replace the direct call with `callInWindow` or `copyFromWindow`, and declare the corresponding permission. The full list of sandboxed APIs is in the [GTM template API reference](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript). Common replacements: `copyFromWindow` for reading globals, `copyFromDataLayer` for dataLayer reads, and `getUrl` for URL parts.
