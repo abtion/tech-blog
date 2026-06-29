@@ -1,6 +1,6 @@
 # Implement Content-Security-Policy — and what to expect when you do
 
-CSP is widely deployed but rarely effective. A Google Research study analysing CSP deployments across 1.68 million hosts found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no benefit against XSS at all.[^csp-stats] The numbers are from 2016, but the underlying problem — third-party tools, legacy scripts, and CMS platforms defaulting to `'unsafe-inline'` — has not gone away.
+CSP is widely deployed but rarely effective. A Google Research study analysing CSP deployments across 1.68 million hosts found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no benefit against XSS at all.[^csp-stats] The numbers are from 2016, but more recent evidence suggests the picture has not materially improved: a 2026 study of the most-visited `.tr` domains found that CSP headers were either non-existent or misconfigured on the overwhelming majority of sites.[^csp-turkey] The underlying problem — third-party tools, legacy scripts, and CMS platforms defaulting to `'unsafe-inline'` — has not gone away.
 
 The reason is not carelessness. It is that removing `'unsafe-inline'` and `'unsafe-eval'` breaks things — third-party consent banners, tag managers, admin UIs — and the fixes are not obvious. This post is about what it actually takes to get there, and why it is worth it.
 
@@ -185,7 +185,9 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 
 ---
 
-[^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [Full PDF](https://dl.acm.org/doi/pdf/10.1145/2976749.2978363). This is also the paper that proposed `'strict-dynamic'`. The data is from 2016 and no comparable large-scale study has been published since, but there is no indication the picture has materially improved.
+[^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [Full PDF](https://dl.acm.org/doi/pdf/10.1145/2976749.2978363). This is also the paper that proposed `'strict-dynamic'`. The data is from 2016 and no comparable large-scale study has been published since.
+
+[^csp-turkey]: Alkan, Canbek. *Web application security awareness in organizations: A mixed-methods study of Turkish domains*. Computers & Security, 2026. [Abstract](https://www.sciencedirect.com/science/article/abs/pii/S0167404826000234). Evaluated 2,463 of the most-visited `.tr` domains via Mozilla Observatory; 53% received a failing grade, with CSP headers either absent or misconfigured in the majority of cases.
 
 [^strict-dynamic]: `'strict-dynamic'` is [well-supported across modern browsers](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can still include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore those fallbacks, while older browsers will use them.
 
