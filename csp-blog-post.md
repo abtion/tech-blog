@@ -185,7 +185,7 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 
 ---
 
-[^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [research.google](https://research.google/pubs/csp-is-dead-long-live-csp-on-the-insecurity-of-whitelists-and-the-future-of-content-security-policy/). This is also the paper that proposed `'strict-dynamic'`.
+[^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [Full PDF](https://dl.acm.org/doi/pdf/10.1145/2976749.2978363). This is also the paper that proposed `'strict-dynamic'`.
 
 [^strict-dynamic]: `'strict-dynamic'` is [well-supported across modern browsers](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can still include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore those fallbacks, while older browsers will use them.
 
