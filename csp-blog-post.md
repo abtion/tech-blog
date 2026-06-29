@@ -9,17 +9,17 @@ XSS attacks work by injecting malicious scripts into a trusted page. Without CSP
 A modern policy using `'strict-dynamic'`[^strict-dynamic] lets you whitelist scripts by nonce or hash, and those trusted scripts can load further scripts dynamically, without opening up entire domains:
 
 ```
-Content-Security-Policy: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; object-src 'none'; base-uri 'none'
+Content-Security-Policy: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; connect-src 'self'; object-src 'none'; base-uri 'none'
 ```
 
-This minimal, script-focused example is considerably stronger than `script-src 'self'`, which still permits any script hosted on your own origin — including ones an attacker could influence.
+This is considerably stronger than `script-src 'self'`, which still permits any script hosted on your own origin — including ones an attacker could influence. Note that `'strict-dynamic'` only propagates trust for *script loading* — it has no effect on `connect-src`. Adding `connect-src 'self'` ensures that `fetch()` and XHR calls from dynamically-loaded scripts are also restricted to your own origin. Extend it with specific third-party API origins as needed.
 
 ## Start in report-only mode
 
 Before enforcing a policy, deploy it in observation mode so you can see what it *would* block without breaking anything:
 
 ```
-Content-Security-Policy-Report-Only: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; object-src 'none'; base-uri 'none'; report-to csp-endpoint
+Content-Security-Policy-Report-Only: script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; connect-src 'self'; object-src 'none'; base-uri 'none'; report-to csp-endpoint
 ```
 
 The `report-to`[^report-to] directive names a reporting group you define via the `Reporting-Endpoints` response header:
