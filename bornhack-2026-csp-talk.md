@@ -296,7 +296,7 @@ The fix is on the extension side — which is the next slide.
 
 ---
 
-## What good extension authors do
+## Respecting the page's CSP
 
 We opened a PR against Privacy Badger (EFF) to do exactly this:
 
