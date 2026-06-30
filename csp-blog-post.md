@@ -165,6 +165,8 @@ One thing worth knowing: permissions are **not** automatically populated when yo
 
 We reported this to CookieInformation in November 2025 and attached a working template export. Their guide has not been updated since. If you are using CookieInformation with GTM, you will need to make this conversion yourself.
 
+For reference, the exact template export we use is available here: [cookie_cat_functional_template.tpl](./cookie_cat_functional_template.tpl).
+
 **How to tell whether your GTM container uses `eval`:** open your container script directly in the browser (`https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX`) and look for this line near the top:
 
 ```js
