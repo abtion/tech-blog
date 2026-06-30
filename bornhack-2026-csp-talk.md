@@ -209,6 +209,7 @@ Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sen
 - Nothing is blocked — the policy is only observed
 - Violations are sent to your reporting endpoint
 - Promote to enforcement once reports are clean
+- Grade the result with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)
 
 Keep `report-uri` alongside `report-to` — Firefox only added `report-to` support in March 2026 (v149).
 
@@ -219,6 +220,11 @@ Deploy report-only, watch the violations, fix them, then enforce.
 Sentry works well here and most teams already have it.
 The violation report includes: blocked-uri, source-file, script-sample (if you included
 'report-sample' in script-src), violated-directive, and the referrer.
+
+Mozilla's HTTP Observatory is also worth a mention here — it scans a live URL and grades
+its security headers, flagging 'unsafe-inline' as a finding. Public grading tools like this
+are a big part of what drives the compliance pressure that gets teams to bother with CSP at
+all: a failing grade in a security questionnaire or pen-test report is often the trigger.
 
 The report-uri / report-to compatibility note is worth mentioning — it catches people
 who drop report-uri too early.

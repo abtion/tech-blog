@@ -19,7 +19,7 @@ So this post argues that the numbers above will not move until two groups of peo
 - **Frameworks and tools** need to make the secure path the default — generating nonces, propagating them, and shipping `'strict-dynamic'` out of the box, so application developers do not have to assemble it by hand.
 - **Browser extensions** need to respect the page's CSP before injecting, so the reports site owners rely on stay clean and actionable.
 
-Along the way it covers what it actually takes to get there today, framework by framework and breakage by breakage — because someone has to do it manually until the ecosystem catches up. Compliance pressure is currently the main force pushing teams to bother at all; it is what prompted the most recent CSP implementations we did.
+Along the way it covers what it actually takes to get there today, framework by framework and breakage by breakage — because someone has to do it manually until the ecosystem catches up. Compliance pressure is currently the main force pushing teams to bother at all — and a lot of that pressure comes from public header-grading tools like [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory], which put a visible letter grade on your site and surface `'unsafe-inline'` as a finding. A failing grade in a security questionnaire or pen-test report is what prompted the most recent CSP implementations we did.
 
 ## What `unsafe-*` costs you — and what you gain by removing it
 
@@ -159,7 +159,7 @@ Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sen
 
 The older `report-uri` directive still works and has wider browser support — worth keeping both while `report-to` adoption matures.
 
-Once your violation reports reflect only intentional usage, you can promote the header to enforcement.
+Once your violation reports reflect only intentional usage, you can promote the header to enforcement. To grade the policy you end up with, scan your site with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory] — it assesses your response headers, calls out weak directives such as `'unsafe-inline'`, and gives you a single score to track as you tighten things up.
 
 ## Monitor your violations — but expect noise
 
@@ -329,3 +329,5 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 [^report-to]: `report-to` reached broad browser support around 2022, with Firefox adding support in version 149 (March 2026). See [caniuse](https://caniuse.com/mdn-http_headers_content-security-policy_report-to). This is why keeping `report-uri` alongside `report-to` remains worthwhile in the interim.
 
 [^adonis-shield-ssr]: AdonisJS docs: *Securing server-rendered applications* (Shield), including CSP nonce usage, Vite keywords, and report-only rollout: [docs.adonisjs.com](https://docs.adonisjs.com/guides/security/securing-ssr-applications#csp-content-security-policy).
+
+[^observatory]: Mozilla HTTP Observatory: [developer.mozilla.org/en-US/observatory](https://developer.mozilla.org/en-US/observatory). Scans a live URL and grades its HTTP security headers, including a CSP-specific assessment. Launched in 2016 and run by Mozilla.
