@@ -298,11 +298,11 @@ The fix is on the extension side — which is the next slide.
 
 ## What good extension authors do
 
-Privacy Badger (EFF) recently shipped a fix:
+We opened a PR against Privacy Badger (EFF) to do exactly this:
 
-1. Read the `Content-Security-Policy` response header in `webRequest.onHeadersReceived`
-2. Parse the `script-src` (or `default-src`) directive
-3. Handle `'unsafe-inline'`, nonces, hashes, and `'strict-dynamic'`
+1. Read the `Content-Security-Policy` response header in `onHeadersReceived`
+2. Parse `script-src` (falling back to `default-src`)
+3. Handle `'unsafe-inline'`, nonces, hashes, `'strict-dynamic'`, and multiple headers
 4. **Skip injection** when the policy would block it
 
 > "If a detection feature can't run on a given page, it simply doesn't run —
@@ -311,8 +311,10 @@ Privacy Badger (EFF) recently shipped a fix:
 This is what respectful extension citizenship looks like.
 
 <!-- TALKING NOTES (slide 11 — ~3 min)
-Reference the specific commit if you have it:
-https://github.com/EFForg/privacybadger/commit/4b42c2eafc2319d1aa2cfe1e4cf36cc0889b12b5
+This is our own contribution — Privacy Badger PR #3200 ("Skip injectScript() on
+CSP-restricted pages"): https://github.com/EFForg/privacybadger/pull/3200
+It gates four feature detectors (fingerprinting, supercookies, script-clobbering check,
+and DNT verification) that previously called injectScript() regardless of the page CSP.
 
 The approach is clean: the extension reads the CSP header (which is available to the
 background page via the webRequest API), parses it, and decides per-frame whether
@@ -517,7 +519,7 @@ Resources:
 - Scott Helme's Top 1 Million Analysis, June 2026
 - [MDN: Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy)
 - [GTM Sandboxed JavaScript API reference](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript)
-- [Privacy Badger CSP fix commit](https://github.com/EFForg/privacybadger/commit/4b42c2eafc2319d1aa2cfe1e4cf36cc0889b12b5)
+- [Privacy Badger CSP fix PR #3200](https://github.com/EFForg/privacybadger/pull/3200)
 - [WordPress core ticket #39941](https://core.trac.wordpress.org/ticket/39941)
 
 <!-- TALKING NOTES (slide 17 — Q&A)
