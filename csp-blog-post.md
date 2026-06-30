@@ -8,7 +8,9 @@ permalink: /csp-blog-post/
 
 Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
 
-CSP is widely deployed but rarely effective. A 2016 Google Research study found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no XSS benefit at all.[^csp-stats] That same paper proposed `'strict-dynamic'` as the solution: a directive that lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. `'strict-dynamic'` has been supported across Chrome, Firefox, and Safari since March 2022 — yet a June 2026 crawl of the Tranco Top 1 Million sites found that of 170,057 sites with a CSP, **46.8% still contain `'unsafe-inline'`** and only 1.6% use `'strict-dynamic'`.[^csp-2026]
+CSP is widely deployed but rarely effective. A June 2026 crawl of the Tranco Top 1 Million sites found 170,057 with a CSP — yet **46.8% still contain `'unsafe-inline'`**, 41.9% allow `'unsafe-eval'`, and only 24.7% carry a nonce. Just **1.6% use `'strict-dynamic'`**, the one directive that makes a script policy actually hold up.[^csp-2026]
+
+`'strict-dynamic'` lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. It was proposed as the fix back in a 2016 Google Research study — the same study that found 94.68% of script-restricting policies were ineffective and 99.34% of CSP hosts gained no XSS benefit at all.[^csp-stats] It has been supported across Chrome, Firefox, and Safari since March 2022. A decade on, adoption of the fix that study proposed still sits at 1.6%.
 
 The reason adoption stays low is that the ecosystem makes the secure path hard. Third-party tools, legacy scripts, and CMS platforms still default to `'unsafe-inline'`, and removing it tends to break things — consent banners, tag managers, admin UIs — with fixes that are rarely obvious.
 
