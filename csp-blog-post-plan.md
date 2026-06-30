@@ -16,12 +16,10 @@ The word "nonce" appears 8 times but is never defined. Add a brief explanation:
 Also add a short pseudocode/framework example showing how to generate and inject a nonce
 (e.g. Rails `SecureRandom.base64(16)`, Node `crypto.randomBytes(16).toString('base64')`).
 
-### 2. GTM nonce setup not shown
-The post says "GTM's container snippet accepts a `nonce` attribute" but never shows how.
-Find the official GTM docs for passing a nonce to the container snippet and add a concrete
-example. This is typically the first thing a reader needs to do before worrying about
-Custom Templates.
-- Docs: https://developers.google.com/tag-platform/security/guides/csp
+### 2. GTM nonce setup not shown ✅ Done
+Added the official nonce-aware container snippet (from developers.google.com/tag-platform/security/guides/csp)
+with an explanation of the two nonce-specific additions: the `nonce` attribute on the outer `<script>` tag
+and the propagation line that forwards the nonce to the dynamically injected `gtm.js` request.
 
 ### 3. CookieInformation template export not offered ✅ Done
 Added an inline reference to [working template export](./cookie_cat_functional_template.tpl)

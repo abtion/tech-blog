@@ -131,7 +131,22 @@ If full CSP coverage of wp-admin matters to your client, consider contributing t
 
 ### Google Tag Manager
 
-GTM's container snippet accepts a `nonce` attribute and propagates it to any scripts it injects, so the container itself plays nicely with a nonce-based policy. The problem is **Custom JavaScript Variables**.
+GTM's container snippet accepts a `nonce` attribute and propagates it to any scripts it injects dynamically, so the container itself plays nicely with a nonce-based policy — but only if you use the nonce-aware version of the snippet. The standard snippet copied from the GTM UI does not include the propagation code. The [official nonce-aware version](https://developers.google.com/tag-platform/security/guides/csp) looks like this:
+
+```html
+<!-- Google Tag Manager -->
+<script nonce="{SERVER-GENERATED-NONCE}">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;var n=d.querySelector('[nonce]');
+n&&j.setAttribute('nonce',n.nonce||n.getAttribute('nonce'));f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-XXXXXX');</script>
+<!-- End Google Tag Manager -->
+```
+
+Two things differ from the standard snippet: the `nonce` attribute on the outer `<script>` tag (which is what your CSP `script-src` authorises), and the propagation line near the end — `d.querySelector('[nonce]')` followed by `j.setAttribute('nonce', ...)` — which forwards the same nonce to the dynamically injected `gtm.js` request. The nonce value must match the one you inject into the `Content-Security-Policy` header on the same response.
+
+The problem is **Custom JavaScript Variables**.
 
 GTM evaluates Custom JavaScript Variables using `eval()`. CSP blocks `eval()` unless `'unsafe-eval'` is present in `script-src` — and adding `'unsafe-eval'` largely defeats the point of having CSP in the first place.
 
