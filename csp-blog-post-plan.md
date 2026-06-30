@@ -47,10 +47,8 @@ which provides the authoritative analysis of why allowlists fail in practice.
 
 ## 🟢 Lower priority — polish
 
-### 7. Sharpen the title
-Current: "Implement Content-Security-Policy — and what to expect when you do"
-This undersells the `unsafe-*` → `strict-dynamic` angle that now frames the post.
-Consider something that signals the payoff more directly.
+### 7. Sharpen the title ✅ Done
+Changed to: "CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`"
 
 ### 8. Weak transition at line 20
 "A policy that gets you there:" — find a stronger lead-in.

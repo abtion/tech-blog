@@ -1,10 +1,10 @@
 ---
 layout: default
-title: Implement Content-Security-Policy — and what to expect when you do
+title: "CSP: dropping 'unsafe-inline' — a practical path to 'strict-dynamic'"
 permalink: /csp-blog-post/
 ---
 
-# Implement Content-Security-Policy — and what to expect when you do
+# CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
 
 Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
 
