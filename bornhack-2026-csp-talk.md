@@ -196,138 +196,6 @@ conventional to include explicitly for clarity.
 
 ---
 
-## Start in report-only mode
-
-```
-Content-Security-Policy-Report-Only: ...policy...; report-to csp-endpoint
-```
-
-```
-Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sentry_key=<key>"
-```
-
-- Nothing is blocked — the policy is only observed
-- Violations are sent to your reporting endpoint
-- Promote to enforcement once reports are clean
-- Grade the result with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)
-
-Keep `report-uri` alongside `report-to` — Firefox only added `report-to` support in March 2026 (v149).
-
-<!-- TALKING NOTES (slide 8 — ~3 min)
-This is the deployment strategy. You never enforce a new CSP on day one.
-Deploy report-only, watch the violations, fix them, then enforce.
-
-Sentry works well here and most teams already have it.
-The violation report includes: blocked-uri, source-file, script-sample (if you included
-'report-sample' in script-src), violated-directive, and the referrer.
-
-Mozilla's HTTP Observatory is also worth a mention here — it scans a live URL and grades
-its security headers, flagging 'unsafe-inline' as a finding. Public grading tools like this
-are a big part of what drives the compliance pressure that gets teams to bother with CSP at
-all: a failing grade in a security questionnaire or pen-test report is often the trigger.
-
-The report-uri / report-to compatibility note is worth mentioning — it catches people
-who drop report-uri too early.
--->
-
----
-
-## Violation reports: signal vs. noise
-
-CSP is **defence-in-depth** — it does not stop injection, it stops injected
-scripts from *executing*. So a `script-src` violation can be your best signal:
-**an attacker's injection that got past sanitization and CSP caught on the way out.**
-
-To be useful, your reports should surface exactly those — real sanitization
-failures in the app you are protecting.
-
-When you turn on reporting, you will see violations from:
-
-1. **Your code** — inline event handlers, forgotten scripts, dynamic injection
-2. **Third-party integrations** — consent banners, tag managers, analytics
-3. **Browser extensions** — VPNs, anti-virus tools, ad blockers
-
-Category 3 is the most common source of persistent noise — and it **hides the
-attacker attempts** you actually want to see.
-
-<!-- TALKING NOTES (slide 9 — ~2 min)
-Lead with the security framing: the whole reason to watch the report stream is that
-a blocked inline script might be a failed XSS attempt — evidence that something got
-past your output encoding and CSP stopped it. That is the signal worth protecting.
-Briefly introduce the three categories. The next slide goes deep on extensions.
-Categories 1 and 2 are actionable and that is where you spend most of your time initially.
-Category 3 is where most long-term noise comes from — and it does real harm by burying
-genuine attack attempts, not just by being untidy.
--->
-
----
-
-## The extension noise problem
-
-VPN clients, anti-virus products, and ad blockers routinely:
-
-- Inject inline scripts for fingerprinting and tracker detection
-- Load fonts and UI assets from external origins
-- Make requests to their own backend services
-
-When your CSP blocks these, **the browser sends a violation report.**
-
-What you see in Sentry:
-```
-blocked-uri: inline
-source-file: chrome-extension://...
-script-sample: (function() { var _detect = ...
-```
-
-**These are not vulnerabilities in your application — but they bury the ones that are.**
-
-<!-- TALKING NOTES (slide 10 — ~3 min)
-Triage heuristics:
-- Violations appearing across many unrelated users and pages = likely extension noise
-- Check source-file: chrome-extension:// or moz-extension:// is a strong signal
-- script-sample often shows detection/fingerprinting code
-
-The cost is not just triage time: every extension report in the pile makes it more
-likely you miss a real attacker attempt. That is the defence-in-depth value leaking away.
-
-You cannot fix these from your side (short of removing your CSP).
-The fix is on the extension side — which is the next slide.
--->
-
----
-
-## Respecting the page's CSP
-
-We opened a PR against Privacy Badger (EFF) to do exactly this:
-
-1. Read the `Content-Security-Policy` response header in `onHeadersReceived`
-2. Parse `script-src` (falling back to `default-src`)
-3. Handle `'unsafe-inline'`, nonces, hashes, `'strict-dynamic'`, and multiple headers
-4. **Skip injection** when the policy would block it
-
-> "If a detection feature can't run on a given page, it simply doesn't run —
-> no console error, no violation report."
-
-This is what respectful extension citizenship looks like.
-
-<!-- TALKING NOTES (slide 11 — ~3 min)
-This is our own contribution — Privacy Badger PR #3200 ("Skip injectScript() on
-CSP-restricted pages"): https://github.com/EFForg/privacybadger/pull/3200
-It gates four feature detectors (fingerprinting, supercookies, script-clobbering check,
-and DNT verification) that previously called injectScript() regardless of the page CSP.
-
-The approach is clean: the extension reads the CSP header (which is available to the
-background page via the webRequest API), parses it, and decides per-frame whether
-injection is permitted. If not permitted, the feature is silently skipped.
-
-Note the limitation: this works for CSP delivered as a response header. CSP in <meta>
-tags is not accessible via the webRequest API and is therefore out of scope.
-
-This is a good example to point extension developers in the audience towards.
--->
-
----
-
 ## Real world: CookieInformation on WordPress
 
 The consent popup ships with inline event handlers throughout its template:
@@ -353,7 +221,7 @@ document.getElementById('declineButton')
 
 Also need: `frame-src` and `connect-src` entries for their policy iframe and API.
 
-<!-- TALKING NOTES (slide 12 — ~4 min)
+<!-- TALKING NOTES (slide 8 — ~4 min)
 CookieInformation does document this fix — it is in their CSP implementation guide.
 But it requires you to edit their template and maintain the changes across updates.
 
@@ -387,7 +255,7 @@ If this line is in your container, you need `'unsafe-eval'` — which defeats CS
 
 **How to check:** open your GTM container URL directly and search for that line.
 
-<!-- TALKING NOTES (slide 13 — ~3 min)
+<!-- TALKING NOTES (slide 9 — ~3 min)
 URL pattern: https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX
 
 Call out that you need the official nonce-aware snippet from the GTM CSP docs:
@@ -428,7 +296,7 @@ if (queryPermission('access_globals', 'execute', 'CookieInformation.getConsentGi
 
 Declare `Accesses Global Variables → CookieInformation.getConsentGivenFor (execute)` in the **Permissions** tab.
 
-<!-- TALKING NOTES (slide 14 — ~4 min)
+<!-- TALKING NOTES (slide 10 — ~4 min)
 The permissions tab gotcha: permissions are NOT auto-populated when you paste in template
 code. You have to add the key manually. If you miss this step, the template silently
 returns undefined — easy to miss in testing because the trigger may still fire.
@@ -462,7 +330,7 @@ Active core tickets: [#59446](https://core.trac.wordpress.org/ticket/59446), [#3
 - Apply strict CSP to the public site only; use a loose policy (or none) for `/wp-admin`
 - Allowlist admin scripts by hash — possible, but hashes change on every WordPress update
 
-<!-- TALKING NOTES (slide 15 — ~3 min)
+<!-- TALKING NOTES (slide 11 — ~3 min)
 This is the honest "we did not solve everything" slide.
 
 The pragmatic answer is option 1: scope the policy to the public site.
@@ -473,6 +341,138 @@ If full wp-admin coverage matters to your client, the best thing you can do is
 contribute to the core tickets: test patches, review proposed solutions, comment on
 stalled issues. Development appears to have stalled as of late 2025. Community involvement
 is what moves WordPress core forward.
+-->
+
+---
+
+## Start in report-only mode
+
+```
+Content-Security-Policy-Report-Only: ...policy...; report-to csp-endpoint
+```
+
+```
+Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sentry_key=<key>"
+```
+
+- Nothing is blocked — the policy is only observed
+- Violations are sent to your reporting endpoint
+- Promote to enforcement once reports are clean
+- Grade the result with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)
+
+Keep `report-uri` alongside `report-to` — Firefox only added `report-to` support in March 2026 (v149).
+
+<!-- TALKING NOTES (slide 12 — ~3 min)
+This is the deployment strategy. You never enforce a new CSP on day one.
+Deploy report-only, watch the violations, fix them, then enforce.
+
+Sentry works well here and most teams already have it.
+The violation report includes: blocked-uri, source-file, script-sample (if you included
+'report-sample' in script-src), violated-directive, and the referrer.
+
+Mozilla's HTTP Observatory is also worth a mention here — it scans a live URL and grades
+its security headers, flagging 'unsafe-inline' as a finding. Public grading tools like this
+are a big part of what drives the compliance pressure that gets teams to bother with CSP at
+all: a failing grade in a security questionnaire or pen-test report is often the trigger.
+
+The report-uri / report-to compatibility note is worth mentioning — it catches people
+who drop report-uri too early.
+-->
+
+---
+
+## Violation reports: signal vs. noise
+
+CSP is **defence-in-depth** — it does not stop injection, it stops injected
+scripts from *executing*. So a `script-src` violation can be your best signal:
+**an attacker's injection that got past sanitization and CSP caught on the way out.**
+
+To be useful, your reports should surface exactly those — real sanitization
+failures in the app you are protecting.
+
+When you turn on reporting, you will see violations from:
+
+1. **Your code** — inline event handlers, forgotten scripts, dynamic injection
+2. **Third-party integrations** — consent banners, tag managers, analytics
+3. **Browser extensions** — VPNs, anti-virus tools, ad blockers
+
+Category 3 is the most common source of persistent noise — and it **hides the
+attacker attempts** you actually want to see.
+
+<!-- TALKING NOTES (slide 13 — ~2 min)
+Lead with the security framing: the whole reason to watch the report stream is that
+a blocked inline script might be a failed XSS attempt — evidence that something got
+past your output encoding and CSP stopped it. That is the signal worth protecting.
+Briefly introduce the three categories. The next slide goes deep on extensions.
+Categories 1 and 2 are actionable and that is where you spend most of your time initially.
+Category 3 is where most long-term noise comes from — and it does real harm by burying
+genuine attack attempts, not just by being untidy.
+-->
+
+---
+
+## The extension noise problem
+
+VPN clients, anti-virus products, and ad blockers routinely:
+
+- Inject inline scripts for fingerprinting and tracker detection
+- Load fonts and UI assets from external origins
+- Make requests to their own backend services
+
+When your CSP blocks these, **the browser sends a violation report.**
+
+What you see in Sentry:
+```
+blocked-uri: inline
+source-file: chrome-extension://...
+script-sample: (function() { var _detect = ...
+```
+
+**These are not vulnerabilities in your application — but they bury the ones that are.**
+
+<!-- TALKING NOTES (slide 14 — ~3 min)
+Triage heuristics:
+- Violations appearing across many unrelated users and pages = likely extension noise
+- Check source-file: chrome-extension:// or moz-extension:// is a strong signal
+- script-sample often shows detection/fingerprinting code
+
+The cost is not just triage time: every extension report in the pile makes it more
+likely you miss a real attacker attempt. That is the defence-in-depth value leaking away.
+
+You cannot fix these from your side (short of removing your CSP).
+The fix is on the extension side — which is the next slide.
+-->
+
+---
+
+## Respecting the page's CSP
+
+We opened a PR against Privacy Badger (EFF) to do exactly this:
+
+1. Read the `Content-Security-Policy` response header in `onHeadersReceived`
+2. Parse `script-src` (falling back to `default-src`)
+3. Handle `'unsafe-inline'`, nonces, hashes, `'strict-dynamic'`, and multiple headers
+4. **Skip injection** when the policy would block it
+
+> "If a detection feature can't run on a given page, it simply doesn't run —
+> no console error, no violation report."
+
+This is what respectful extension citizenship looks like.
+
+<!-- TALKING NOTES (slide 15 — ~3 min)
+This is our own contribution — Privacy Badger PR #3200 ("Skip injectScript() on
+CSP-restricted pages"): https://github.com/EFForg/privacybadger/pull/3200
+It gates four feature detectors (fingerprinting, supercookies, script-clobbering check,
+and DNT verification) that previously called injectScript() regardless of the page CSP.
+
+The approach is clean: the extension reads the CSP header (which is available to the
+background page via the webRequest API), parses it, and decides per-frame whether
+injection is permitted. If not permitted, the feature is silently skipped.
+
+Note the limitation: this works for CSP delivered as a response header. CSP in <meta>
+tags is not accessible via the webRequest API and is therefore out of scope.
+
+This is a good example to point extension developers in the audience towards.
 -->
 
 ---
@@ -552,9 +552,9 @@ A: It reduces the attack surface significantly even if it is not airtight.
 | Hook + data | 1–3 | ~6 min |
 | What unsafe-* means | 4–5 | ~5 min |
 | The fix (nonces + strict-dynamic) | 6–7 | ~8 min |
-| Report-only deployment | 8 | ~3 min |
-| Violation noise + extensions | 9–11 | ~8 min |
-| Real-world cases (CookieInformation, GTM, WP admin) | 12–15 | ~14 min |
+| Real-world cases (CookieInformation, GTM, WP admin) | 8–11 | ~14 min |
+| Report-only deployment | 12 | ~3 min |
+| Violation noise + extensions | 13–15 | ~8 min |
 | Recommendations | 16 | ~2 min |
 | **Total talk** | | **~46 min** |
 | Q&A | | ~10 min |

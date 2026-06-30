@@ -34,6 +34,8 @@ The common alternative — enumerating trusted script domains in `script-src` �
 - No domain allowlist to maintain. You do not need to enumerate every CDN, analytics endpoint, or third-party library host.
 - Minimal nonce propagation. You attach a nonce to your entry-point scripts; `'strict-dynamic'` automatically extends trust to any scripts they load dynamically, without you having to touch them.
 
+## Set up nonces in your framework
+
 **What is a nonce?** A nonce is a per-request cryptographically random value (typically base64-encoded) that the server generates on every response and injects into two places:
 
 1. As a `nonce` attribute on each inline `<script>` tag you want to allow
@@ -142,51 +144,6 @@ Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict
 **Why you still need allowlists for other directives:** Nonces work for `script-src` because you control the inline `<script>` tags — you can stamp each one with the nonce at render time. But for images, fonts, stylesheets, and API endpoints, you cannot embed a nonce. An `<img>` tag requesting `https://analytics.example.com/pixel.gif` has no nonce attribute to carry. Instead, you allowlist the origin: `img-src 'self' https://analytics.example.com`. This is still far simpler than maintaining an allowlist for scripts (especially when `'strict-dynamic'` takes over that burden), but it means your CSP policy will contain domain allowlists in practice.
 
 CSP is defence-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs. But a policy like this makes XSS dramatically harder to exploit.
-
-## Start in report-only mode
-
-Before enforcing a policy, deploy it in observation mode so you can see what it *would* block without breaking anything:
-
-```
-Content-Security-Policy-Report-Only: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; report-to csp-endpoint
-```
-
-The `report-to`[^report-to] directive names a reporting group you define via the `Reporting-Endpoints` response header:
-
-```
-Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sentry_key=<key>"
-```
-
-The older `report-uri` directive still works and has wider browser support — worth keeping both while `report-to` adoption matures.
-
-Once your violation reports reflect only intentional usage, you can promote the header to enforcement. To grade the policy you end up with, scan your site with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory] — it assesses your response headers, calls out weak directives such as `'unsafe-inline'`, and gives you a single score to track as you tighten things up.
-
-## Monitor your violations — but expect noise
-
-Connecting CSP reporting to Sentry (or a similar platform) gives you visibility into violations as they happen. Many violations will be actionable: misconfigured third-party integrations, forgotten inline event handlers, legacy scripts that need nonces.
-
-It is worth being clear about what these reports are *for*. CSP is a defence-in-depth measure: it does not stop injection, it stops injected scripts from executing. So a `script-src` violation can be the most valuable signal you get — an attacker's injection that made it past your output encoding and sanitization, caught by CSP on the way out. To be useful, your violation stream should surface exactly those: real sanitization failures in the app CSP is protecting.
-
-**But a significant share will be noise from your users' browser extensions** — and that noise is not just untidy, it actively hides those unsuccessful attack attempts in the pile.
-
-VPN clients, anti-virus products, and ad blockers routinely inject inline scripts into pages as part of their normal operation — fingerprinting detection, tracker blocking, ad replacement. When your CSP blocks those injections, the browser sends a violation report.
-
-In practice you'll see things like:
-
-- `blocked 'script' from 'inline:'` — an extension tried to inject an inline script
-- `blocked 'connect' from 'example.com'` — an extension is making requests to its own backend
-- `blocked 'font' from 'example.com'` — an extension injected UI that loads fonts from external origins
-
-These are often not vulnerabilities in your app and are frequently not actionable for the site owner. Filtering them out requires some manual triage: look at whether violations are appearing consistently across many different users and unrelated pages, correlate with the `script-sample`, `source-file`, and `blocked-uri` fields in the report, and be sceptical of anything that appears at high volume with no clear origin in your own codebase.
-That `script-sample` field is populated by adding `'report-sample'` to `script-src`, which is why the example policies above include it.
-
-## Browser extension: Respecting the page's CSP
-
-This noise problem is solvable on the extension side. Extensions that inject inline scripts or page-context DOM resources should check the `Content-Security-Policy` response header before attempting those injections, and skip them when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards.
-
-Privacy Badger, the open-source tracker-blocking extension from the EFF, is a good test case. Four of its feature detectors — fingerprinting detection, supercookie detection, the script-clobbering check, and DNT verification — call `injectScript()` to run code in the page context regardless of whether the page's CSP allows inline scripts. On a strict policy that injection is blocked, which pollutes the console and lands a violation in the site owner's reports for no benefit.
-
-We opened [a pull request (#3200)](https://github.com/EFForg/privacybadger/pull/3200) to fix exactly this. It reads the `Content-Security-Policy` response header in `onHeadersReceived()`, records per-frame whether inline scripts are allowed — parsing `script-src` (falling back to `default-src`) and handling `'unsafe-inline'`, nonces, hashes, `'strict-dynamic'`, and multiple CSP headers — and has those four handlers return early so `injectScript()` is never called when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards. An example of an extension being a respectful citizen of the pages it runs on. (It handles CSP delivered via response headers; CSP in `<meta>` tags is out of scope for the extension API approach.)
 
 ## A real-world example: WordPress with CookieInformation and GTM
 
@@ -299,6 +256,51 @@ If it is there, your container has at least one Custom JavaScript Variable and w
 ![GTM container script showing the eval wrapper function](images/gtm-eval-in-container.png)
 
 The same pattern applies to any Custom JavaScript Variable in your container: identify the `window` method or property it calls, replace the direct call with `callInWindow` or `copyFromWindow`, and declare the corresponding permission. The full list of sandboxed APIs is in the [GTM template API reference](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript). Common replacements: `copyFromWindow` for reading globals, `copyFromDataLayer` for dataLayer reads, and `getUrl` for URL parts.
+
+## Start in report-only mode
+
+Before enforcing a policy, deploy it in observation mode so you can see what it *would* block without breaking anything:
+
+```
+Content-Security-Policy-Report-Only: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; report-to csp-endpoint
+```
+
+The `report-to`[^report-to] directive names a reporting group you define via the `Reporting-Endpoints` response header:
+
+```
+Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sentry_key=<key>"
+```
+
+The older `report-uri` directive still works and has wider browser support — worth keeping both while `report-to` adoption matures.
+
+Once your violation reports reflect only intentional usage, you can promote the header to enforcement. To grade the policy you end up with, scan your site with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory] — it assesses your response headers, calls out weak directives such as `'unsafe-inline'`, and gives you a single score to track as you tighten things up.
+
+## Monitor your violations — but expect noise
+
+Connecting CSP reporting to Sentry (or a similar platform) gives you visibility into violations as they happen. Many violations will be actionable: misconfigured third-party integrations, forgotten inline event handlers, legacy scripts that need nonces.
+
+It is worth being clear about what these reports are *for*. CSP is a defence-in-depth measure: it does not stop injection, it stops injected scripts from executing. So a `script-src` violation can be the most valuable signal you get — an attacker's injection that made it past your output encoding and sanitization, caught by CSP on the way out. To be useful, your violation stream should surface exactly those: real sanitization failures in the app CSP is protecting.
+
+**But a significant share will be noise from your users' browser extensions** — and that noise is not just untidy, it actively hides those unsuccessful attack attempts in the pile.
+
+VPN clients, anti-virus products, and ad blockers routinely inject inline scripts into pages as part of their normal operation — fingerprinting detection, tracker blocking, ad replacement. When your CSP blocks those injections, the browser sends a violation report.
+
+In practice you'll see things like:
+
+- `blocked 'script' from 'inline:'` — an extension tried to inject an inline script
+- `blocked 'connect' from 'example.com'` — an extension is making requests to its own backend
+- `blocked 'font' from 'example.com'` — an extension injected UI that loads fonts from external origins
+
+These are often not vulnerabilities in your app and are frequently not actionable for the site owner. Filtering them out requires some manual triage: look at whether violations are appearing consistently across many different users and unrelated pages, correlate with the `script-sample`, `source-file`, and `blocked-uri` fields in the report, and be sceptical of anything that appears at high volume with no clear origin in your own codebase.
+That `script-sample` field is populated by adding `'report-sample'` to `script-src`, which is why the example policies above include it.
+
+## Browser extension: Respecting the page's CSP
+
+This noise problem is solvable on the extension side. Extensions that inject inline scripts or page-context DOM resources should check the `Content-Security-Policy` response header before attempting those injections, and skip them when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards.
+
+Privacy Badger, the open-source tracker-blocking extension from the EFF, is a good test case. Four of its feature detectors — fingerprinting detection, supercookie detection, the script-clobbering check, and DNT verification — call `injectScript()` to run code in the page context regardless of whether the page's CSP allows inline scripts. On a strict policy that injection is blocked, which pollutes the console and lands a violation in the site owner's reports for no benefit.
+
+We opened [a pull request (#3200)](https://github.com/EFForg/privacybadger/pull/3200) to fix exactly this. It reads the `Content-Security-Policy` response header in `onHeadersReceived()`, records per-frame whether inline scripts are allowed — parsing `script-src` (falling back to `default-src`) and handling `'unsafe-inline'`, nonces, hashes, `'strict-dynamic'`, and multiple CSP headers — and has those four handlers return early so `injectScript()` is never called when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards. An example of an extension being a respectful citizen of the pages it runs on. (It handles CSP delivered via response headers; CSP in `<meta>` tags is out of scope for the extension API approach.)
 
 ## Recommendations
 
