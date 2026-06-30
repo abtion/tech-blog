@@ -7,14 +7,13 @@ See `WRITING_STYLE.md` for tone and conventions.
 
 ## 🔴 High priority — content gaps
 
-### 1. Nonces never explained
-The word "nonce" appears 8 times but is never defined. Add a brief explanation:
-- Per-request cryptographically random value, base64-encoded
-- Must be injected into both the `script` tag *and* the CSP header on every response
-- The `{random}` placeholder in the policy examples should be clarified as exactly this
-
-Also add a short pseudocode/framework example showing how to generate and inject a nonce
-(e.g. Rails `SecureRandom.base64(16)`, Node `crypto.randomBytes(16).toString('base64')`).
+### 1. Nonces never explained ✅ Done
+Added a comprehensive nonce explanation including:
+- Definition: per-request cryptographically random value, base64-encoded
+- Must be injected into both the `<script nonce="">` attribute and CSP header
+- Framework examples: Node.js (`crypto.randomBytes`), Rails (`SecureRandom.base64`), PHP (`random_bytes`)
+- Explanation of why nonces are essential (attacker cannot guess next request's nonce)
+- Clarification that allowlists are still needed for non-script-src directives (img-src, font-src, connect-src, etc.) because you cannot embed nonces in those resources
 
 ### 2. GTM nonce setup not shown ✅ Done
 Added the official nonce-aware container snippet (from developers.google.com/tag-platform/security/guides/csp)

@@ -25,6 +25,100 @@ The common alternative — enumerating trusted script domains in `script-src` �
 - No domain allowlist to maintain. You do not need to enumerate every CDN, analytics endpoint, or third-party library host.
 - Minimal nonce propagation. You attach a nonce to your entry-point scripts; `'strict-dynamic'` automatically extends trust to any scripts they load dynamically, without you having to touch them.
 
+**What is a nonce?** A nonce is a per-request cryptographically random value (typically base64-encoded) that the server generates on every response and injects into two places:
+
+1. As a `nonce` attribute on each inline `<script>` tag you want to allow
+2. In the `script-src` directive of the CSP header (e.g. `'nonce-ABC123...'`)
+
+The browser matches them: if the nonce on the script tag matches one in the CSP, the script is allowed. If not, it is blocked.
+
+Here is how to generate and inject a nonce in various frameworks:
+
+**AdonisJS:**
+```typescript
+// config/shield.ts
+import { defineConfig } from '@adonisjs/shield'
+
+const shieldConfig = defineConfig({
+  csp: {
+    enabled: true,
+    directives: {
+      defaultSrc: [`'self'`],
+      scriptSrc: [`'self'`, '@nonce', `'strict-dynamic'`],
+      styleSrc: [`'self'`, '@nonce'],
+    },
+    reportOnly: false,
+  },
+})
+
+export default shieldConfig
+```
+
+Shield automatically generates a unique nonce for each request. In Edge templates, use the `cspNonce` variable:
+
+```html
+<script nonce="{{ cspNonce }}">
+  // This inline script executes because it has a valid nonce
+  console.log('Application initialized')
+</script>
+```
+
+**Ruby on Rails:**
+```ruby
+# config/initializers/content_security_policy.rb
+Rails.application.configure do
+  config.content_security_policy do |policy|
+    policy.script_src :self, :strict_dynamic
+    # ... other directives
+  end
+
+  # Generate session nonce for script and style tags
+  config.content_security_policy_nonce_generator = lambda { |request|
+    request.session[:nonce] ||= SecureRandom.hex
+  }
+  config.content_security_policy_nonce_directives = %w[script-src style-src]
+end
+```
+
+Rails automatically injects the nonce into inline `<script>` and `<style>` tags and the CSP header. Access it in views via the `csp_meta_tag` helper.
+
+**PHP WordPress:**
+```php
+// Centralized nonce generation — once per request
+function get_csp_nonce() {
+  static $nonce = null;
+  if ($nonce === null) {
+    $nonce = wp_generate_password( 22, false, false );
+  }
+  return $nonce;
+}
+
+// Apply nonce to all script and style tags via hooks
+add_filter('wp_script_attributes', function($attributes) {
+  $attributes['nonce'] = get_csp_nonce();
+  return $attributes;
+});
+
+// Set CSP header via wp_headers filter (runs at the right time)
+// Wrap in is_admin() check to avoid interfering with wp-admin
+if ( ! is_admin() ) {
+  add_filter('wp_headers', function($headers) {
+    $headers['Content-Security-Policy'] = "script-src 'nonce-" . get_csp_nonce() . "' 'strict-dynamic'";
+    return $headers;
+  });
+}
+```
+
+This pattern is crucial because:
+- The `wp_headers` filter runs at the right time to set response headers
+- The `if ( ! is_admin() )` check prevents CSP from blocking wp-admin, which has different inline script requirements
+- The nonce is cached so the same random value appears in both `<script nonce="">` attributes and the CSP header
+- Hooks like `wp_script_attributes` and `wp_inline_script_attributes` automatically inject the nonce into all inline scripts without manual intervention
+
+For Rails projects, see [Abtion's Rails template](https://github.com/abtion/rails-template/blob/main/config/initializers/content_security_policy.rb) for a complete CSP initializer that uses `SecureRandom.hex` and Rails' built-in nonce propagation.
+
+The randomness is essential: an attacker who cannot guess the nonce for the *next* request cannot bypass the policy by injecting a script with a stale nonce.
+
 That translates into a policy like this:
 
 ```
@@ -37,6 +131,8 @@ Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict
 - `style-src 'unsafe-inline'` is a common addition when frameworks inject inline styles; accept it as a known trade-off if needed.
 - `frame-ancestors 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
 - `object-src 'none'` and `base-uri 'none'` are technically redundant with `default-src 'none'`, but keeping them explicit is a common convention for clarity.
+
+**Why you still need allowlists for other directives:** Nonces work for `script-src` because you control the inline `<script>` tags — you can stamp each one with the nonce at render time. But for images, fonts, stylesheets, and API endpoints, you cannot embed a nonce. An `<img>` tag requesting `https://analytics.example.com/pixel.gif` has no nonce attribute to carry. Instead, you whitelist the origin: `img-src 'self' https://analytics.example.com`. This is still far simpler than maintaining an allowlist for scripts (especially when `'strict-dynamic'` takes over that burden), but it means your CSP policy will contain domain allowlists in practice.
 
 CSP is defense-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs. But a policy like this makes XSS dramatically harder to exploit.
 
