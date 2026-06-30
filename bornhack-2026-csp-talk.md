@@ -234,18 +234,30 @@ who drop report-uri too early.
 
 ## Violation reports: signal vs. noise
 
+CSP is **defence-in-depth** — it does not stop injection, it stops injected
+scripts from *executing*. So a `script-src` violation can be your best signal:
+**an attacker's injection that got past sanitization and CSP caught on the way out.**
+
+To be useful, your reports should surface exactly those — real sanitization
+failures in the app you are protecting.
+
 When you turn on reporting, you will see violations from:
 
 1. **Your code** — inline event handlers, forgotten scripts, dynamic injection
 2. **Third-party integrations** — consent banners, tag managers, analytics
 3. **Browser extensions** — VPNs, anti-virus tools, ad blockers
 
-Category 3 is the most common source of persistent noise.
+Category 3 is the most common source of persistent noise — and it **hides the
+attacker attempts** you actually want to see.
 
 <!-- TALKING NOTES (slide 9 — ~2 min)
+Lead with the security framing: the whole reason to watch the report stream is that
+a blocked inline script might be a failed XSS attempt — evidence that something got
+past your output encoding and CSP stopped it. That is the signal worth protecting.
 Briefly introduce the three categories. The next slide goes deep on extensions.
 Categories 1 and 2 are actionable and that is where you spend most of your time initially.
-Category 3 is where most long-term noise comes from.
+Category 3 is where most long-term noise comes from — and it does real harm by burying
+genuine attack attempts, not just by being untidy.
 -->
 
 ---
@@ -267,13 +279,16 @@ source-file: chrome-extension://...
 script-sample: (function() { var _detect = ...
 ```
 
-**These are not vulnerabilities in your application.**
+**These are not vulnerabilities in your application — but they bury the ones that are.**
 
 <!-- TALKING NOTES (slide 10 — ~3 min)
 Triage heuristics:
 - Violations appearing across many unrelated users and pages = likely extension noise
 - Check source-file: chrome-extension:// or moz-extension:// is a strong signal
 - script-sample often shows detection/fingerprinting code
+
+The cost is not just triage time: every extension report in the pile makes it more
+likely you miss a real attacker attempt. That is the defence-in-depth value leaking away.
 
 You cannot fix these from your side (short of removing your CSP).
 The fix is on the extension side — which is the next slide.

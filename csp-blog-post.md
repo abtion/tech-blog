@@ -165,7 +165,9 @@ Once your violation reports reflect only intentional usage, you can promote the 
 
 Connecting CSP reporting to Sentry (or a similar platform) gives you visibility into violations as they happen. Many violations will be actionable: misconfigured third-party integrations, forgotten inline event handlers, legacy scripts that need nonces.
 
-**But a significant share will be noise from your users' browser extensions.**
+It is worth being clear about what these reports are *for*. CSP is a defence-in-depth measure: it does not stop injection, it stops injected scripts from executing. So a `script-src` violation can be the most valuable signal you get — an attacker's injection that made it past your output encoding and sanitization, caught by CSP on the way out. To be useful, your violation stream should surface exactly those: real sanitization failures in the app CSP is protecting.
+
+**But a significant share will be noise from your users' browser extensions** — and that noise is not just untidy, it actively hides those unsuccessful attack attempts in the pile.
 
 VPN clients, anti-virus products, and ad blockers routinely inject inline scripts into pages as part of their normal operation — fingerprinting detection, tracker blocking, ad replacement. When your CSP blocks those injections, the browser sends a violation report.
 
