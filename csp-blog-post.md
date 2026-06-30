@@ -34,7 +34,7 @@ The browser matches them: if the nonce on the script tag matches one in the CSP,
 
 Here is how to generate and inject a nonce in various frameworks:
 
-**AdonisJS:**
+**AdonisJS[^adonis-shield-ssr]:**
 ```typescript
 // config/shield.ts
 import { defineConfig } from '@adonisjs/shield'
@@ -314,3 +314,5 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 [^strict-dynamic]: `'strict-dynamic'` was supported in Chrome and Firefox from 2016–2017, with Safari adding support in version 15.4 (March 2022), making it universally available across all major browsers. See [caniuse](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore them, while older browsers will use them.
 
 [^report-to]: `report-to` reached broad browser support around 2022, with Firefox adding support in version 149 (March 2026). See [caniuse](https://caniuse.com/mdn-http_headers_content-security-policy_report-to). This is why keeping `report-uri` alongside `report-to` remains worthwhile in the interim.
+
+[^adonis-shield-ssr]: AdonisJS docs: *Securing server-rendered applications* (Shield), including CSP nonce usage, Vite keywords, and report-only rollout: [docs.adonisjs.com](https://docs.adonisjs.com/guides/security/securing-ssr-applications#csp-content-security-policy).
