@@ -128,9 +128,9 @@ Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict
 - `style-src 'unsafe-inline'` is a common addition, when frameworks inject inline styles; accept it as a known trade-off, if needed.
 - `frame-ancestors 'none'` and `base-uri 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
 
-**Why you still need allowlists for other directives:** Nonces work for `script-src` because you control the inline `<script>` tags — you can stamp each one with the nonce at render time. But for images, fonts, stylesheets, and API endpoints, you cannot embed a nonce. An `<img>` tag requesting `https://analytics.example.com/pixel.gif` has no nonce attribute to carry. Instead, you whitelist the origin: `img-src 'self' https://analytics.example.com`. This is still far simpler than maintaining an allowlist for scripts (especially when `'strict-dynamic'` takes over that burden), but it means your CSP policy will contain domain allowlists in practice.
+**Why you still need allowlists for other directives:** Nonces work for `script-src` because you control the inline `<script>` tags — you can stamp each one with the nonce at render time. But for images, fonts, stylesheets, and API endpoints, you cannot embed a nonce. An `<img>` tag requesting `https://analytics.example.com/pixel.gif` has no nonce attribute to carry. Instead, you allowlist the origin: `img-src 'self' https://analytics.example.com`. This is still far simpler than maintaining an allowlist for scripts (especially when `'strict-dynamic'` takes over that burden), but it means your CSP policy will contain domain allowlists in practice.
 
-CSP is defense-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs. But a policy like this makes XSS dramatically harder to exploit.
+CSP is defence-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs. But a policy like this makes XSS dramatically harder to exploit.
 
 ## Start in report-only mode
 
