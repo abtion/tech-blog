@@ -80,7 +80,7 @@ Rails.application.configure do
 end
 ```
 
-Rails automatically injects the nonce into inline `<script>` and `<style>` tags and the CSP header. Access it in views via the `csp_meta_tag` helper.
+For Rails projects, see [Abtion's Rails template](https://github.com/abtion/rails-template/blob/main/config/initializers/content_security_policy.rb) for a suggestion on how to structure it.
 
 **PHP WordPress:**
 ```php
@@ -93,33 +93,30 @@ function get_csp_nonce() {
   return $nonce;
 }
 
-// Apply nonce to all script and style tags via hooks
-add_filter('wp_script_attributes', function($attributes) {
-  $attributes['nonce'] = get_csp_nonce();
-  return $attributes;
-});
-
-// Set CSP header via wp_headers filter (runs at the right time)
-// Wrap in is_admin() check to avoid interfering with wp-admin
+// Wrap in is_admin() because WP admin is not ready for it ([#59446](https://core.trac.wordpress.org/ticket/59446))
 if ( ! is_admin() ) {
   add_filter('wp_headers', function($headers) {
     $headers['Content-Security-Policy'] = "script-src 'nonce-" . get_csp_nonce() . "' 'strict-dynamic'";
     return $headers;
   });
+  // Apply nonce to all script and style tags via hooks
+  add_filter('wp_script_attributes', function($attributes) {
+    $attributes['nonce'] = get_csp_nonce();
+    return $attributes;
+  });
+  add_filter('wp_inline_script_attributes', function($attributes) {
+    $attributes['nonce'] = get_csp_nonce();
+    return $attributes;
+  });
+  add_action( 'login_init', function() {
+    header("Content-Security-Policy: script-src 'nonce-" . get_csp_nonce() . "' 'strict-dynamic'");
+  });
 }
 ```
 
-This pattern is crucial because:
-- The `wp_headers` filter runs at the right time to set response headers
-- The `if ( ! is_admin() )` check prevents CSP from blocking wp-admin, which has different inline script requirements
-- The nonce is cached so the same random value appears in both `<script nonce="">` attributes and the CSP header
-- Hooks like `wp_script_attributes` and `wp_inline_script_attributes` automatically inject the nonce into all inline scripts without manual intervention
+Or use a WP plugin like https://github.com/westonruter/strict-csp
 
-For Rails projects, see [Abtion's Rails template](https://github.com/abtion/rails-template/blob/main/config/initializers/content_security_policy.rb) for a complete CSP initializer that uses `SecureRandom.hex` and Rails' built-in nonce propagation.
-
-The randomness is essential: an attacker who cannot guess the nonce for the *next* request cannot bypass the policy by injecting a script with a stale nonce.
-
-That translates into a policy like this:
+## A baseline policy
 
 ```
 Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
@@ -128,7 +125,7 @@ Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict
 `default-src 'none'` is the foundation: every resource type is blocked unless explicitly permitted. The remaining directives carve out only what a typical app needs. A few things worth noting:
 
 - `'strict-dynamic'` only propagates trust for *script loading* — it has no effect on `connect-src`. Scripts (including dynamically-loaded ones) can only make `fetch()` and XHR calls to your own origin unless you extend `connect-src` with specific third-party API origins.
-- `style-src 'unsafe-inline'` is a common addition when frameworks inject inline styles; accept it as a known trade-off if needed.
+- `style-src 'unsafe-inline'` is a common addition, when frameworks inject inline styles; accept it as a known trade-off, if needed.
 - `frame-ancestors 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
 - `object-src 'none'` and `base-uri 'none'` are technically redundant with `default-src 'none'`, but keeping them explicit is a common convention for clarity.
 
