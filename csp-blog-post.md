@@ -1,4 +1,12 @@
+---
+layout: default
+title: Implement Content-Security-Policy — and what to expect when you do
+permalink: /csp-blog-post/
+---
+
 # Implement Content-Security-Policy — and what to expect when you do
+
+Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
 
 CSP is widely deployed but rarely effective. A 2016 Google Research study found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no XSS benefit at all.[^csp-stats] That same paper proposed `'strict-dynamic'` as the solution: a directive that lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. `'strict-dynamic'` has been supported across Chrome, Firefox, and Safari since March 2022 — yet a June 2026 crawl of the Tranco Top 1 Million sites found that of 170,057 sites with a CSP, **46.8% still contain `'unsafe-inline'`** and only 1.6% use `'strict-dynamic'`.[^csp-2026] The underlying problem — third-party tools, legacy scripts, and CMS platforms defaulting to `'unsafe-inline'` — has not gone away.
 
