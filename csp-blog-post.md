@@ -164,9 +164,9 @@ VPN clients, anti-virus products, and ad blockers routinely inject inline script
 
 In practice you'll see things like:
 
-- `blocked 'script' from 'inline'` — an extension tried to inject an inline script
-- `blocked 'connect' from 'various domains'` — an extension is making requests to its own backend
-- `blocked 'font' from 'various domains'` — an extension injected UI that loads fonts from external origins
+- `blocked 'script' from 'inline:'` — an extension tried to inject an inline script
+- `blocked 'connect' from 'example.com'` — an extension is making requests to its own backend
+- `blocked 'font' from 'example.com'` — an extension injected UI that loads fonts from external origins
 
 These are often not vulnerabilities in your app and are frequently not actionable for the site owner. Filtering them out requires some manual triage: look at whether violations are appearing consistently across many different users and unrelated pages, correlate with the `script-sample`, `source-file`, and `blocked-uri` fields in the report, and be sceptical of anything that appears at high volume with no clear origin in your own codebase.
 That `script-sample` field is populated by adding `'report-sample'` to `script-src`, which is why the example policies above include it.
