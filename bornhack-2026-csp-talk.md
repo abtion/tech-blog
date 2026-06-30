@@ -34,24 +34,26 @@ whole talk is about.
 
 ## The numbers
 
-A 2016 Google Research study found:
-
-- **94.68%** of policies *trying* to restrict script execution are ineffective
-- **99.34%** of all hosts with CSP get no XSS benefit at all
-
-Fast-forward to June 2026 (Tranco Top 1 Million crawl):
+June 2026 (Tranco Top 1 Million crawl):
 
 - 170,057 sites have a `Content-Security-Policy` header
 - **46.8%** still include `'unsafe-inline'`
 - **41.9%** still include `'unsafe-eval'`
+- Only **24.7%** use a nonce
 - Only **1.6%** use `'strict-dynamic'`
 
-Ten years. Barely moved.
+The fix has been ready for years. A 2016 Google Research study proposed `'strict-dynamic'` —
+and it has had broad browser support since March 2022
+
+Ten years on, adoption of that fix sits at **1.6%**. Barely moved.
 
 <!-- TALKING NOTES (slide 3 — ~3 min)
+Lead with the recent numbers — they are the story. Of the sites that bother with a CSP at all,
+nearly half still ship 'unsafe-inline' and only 1.6% use strict-dynamic.
 The 2016 paper ("CSP Is Dead, Long Live CSP!") proposed strict-dynamic as the fix.
 It has had broad browser support since March 2022 — Safari was the last holdout.
-Despite that, adoption is essentially flat. The talk is about why, and what to do about it.
+Use the 2016 figures only to frame adoption rate: a decade after the fix was proposed,
+uptake is essentially flat.
 The studies use different methodologies, but the trend line is still clear.
 Keep this punchy. The numbers do the work.
 -->
