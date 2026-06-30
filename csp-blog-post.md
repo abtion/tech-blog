@@ -114,7 +114,7 @@ if ( ! is_admin() ) {
 }
 ```
 
-Or use a WP plugin like https://github.com/westonruter/strict-csp
+Or use a WP plugin like [Strict CSP](https://wordpress.org/plugins/strict-csp/)
 
 ## A baseline policy
 
