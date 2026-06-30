@@ -119,15 +119,14 @@ Or use a WP plugin like [Strict CSP](https://wordpress.org/plugins/strict-csp/)
 ## A baseline policy
 
 ```
-Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
+Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'
 ```
 
 `default-src 'none'` is the foundation: every resource type is blocked unless explicitly permitted. The remaining directives carve out only what a typical app needs. A few things worth noting:
 
 - `'strict-dynamic'` only propagates trust for *script loading* — it has no effect on `connect-src`. Scripts (including dynamically-loaded ones) can only make `fetch()` and XHR calls to your own origin unless you extend `connect-src` with specific third-party API origins.
 - `style-src 'unsafe-inline'` is a common addition, when frameworks inject inline styles; accept it as a known trade-off, if needed.
-- `frame-ancestors 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
-- `object-src 'none'` and `base-uri 'none'` are technically redundant with `default-src 'none'`, but keeping them explicit is a common convention for clarity.
+- `frame-ancestors 'none'` and `base-uri 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
 
 **Why you still need allowlists for other directives:** Nonces work for `script-src` because you control the inline `<script>` tags — you can stamp each one with the nonce at render time. But for images, fonts, stylesheets, and API endpoints, you cannot embed a nonce. An `<img>` tag requesting `https://analytics.example.com/pixel.gif` has no nonce attribute to carry. Instead, you whitelist the origin: `img-src 'self' https://analytics.example.com`. This is still far simpler than maintaining an allowlist for scripts (especially when `'strict-dynamic'` takes over that burden), but it means your CSP policy will contain domain allowlists in practice.
 
