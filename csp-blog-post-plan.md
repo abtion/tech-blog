@@ -23,11 +23,9 @@ example. This is typically the first thing a reader needs to do before worrying 
 Custom Templates.
 - Docs: https://developers.google.com/tag-platform/security/guides/csp
 
-### 3. CookieInformation template export not offered
-`cookie_cat_functional_template.tpl` is committed to the repo but never mentioned in the post.
-CookieInformation still hasn't updated their guide (as of June 2026).
-Add a line offering the template as a download/reference, since readers will need to do the
-same conversion themselves.
+### 3. CookieInformation template export not offered ✅ Done
+Added an inline reference to [working template export](./cookie_cat_functional_template.tpl)
+in `csp-blog-post.md`, plus links to the live CookieInformation guide and a Web Archive snapshot.
 
 ---
 
