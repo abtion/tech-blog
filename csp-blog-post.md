@@ -187,7 +187,7 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 
 **For extension authors:**
 
-- Read the `Content-Security-Policy` response header in your `webRequest.onHeadersReceived` listener.
+- In Manifest V3, read the `Content-Security-Policy` response header in `webRequest.onHeadersReceived` before attempting page-context script injection (with `webRequest` + host permissions, and `responseHeaders` in `extraInfoSpec`).
 - Record whether inline scripts and page-context DOM injections are permitted per frame.
 - Gate any `injectScript()` calls behind that check. Your users' sites will thank you.
 

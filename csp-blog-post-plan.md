@@ -31,12 +31,9 @@ in `csp-blog-post.md`, plus links to the live CookieInformation guide and a Web 
 
 ## 🟡 Medium priority — accuracy / completeness
 
-### 4. Extension API — verify Manifest V3 compatibility
-The recommendations to extension authors (near end of post) reference `webRequest.onHeadersReceived`.
-In MV3 (now mandatory in Chrome) the `webRequest` API is restricted.
-- Research: does `webRequest.onHeadersReceived` still work in MV3 for reading response headers?
-- If not, what is the correct MV3 approach?
-- Update the recommendation accordingly, or add a note.
+### 4. Extension API — verify Manifest V3 compatibility ✅ Done
+Updated `csp-blog-post.md` to clarify MV3 behaviour: `webRequest.onHeadersReceived`
+still works for passive response-header inspection in the extension-author guidance.
 
 ### 5. Connect `'report-sample'` to the `script-sample` field
 The monitoring section tells readers to look at the `script-sample` field in violation reports,
