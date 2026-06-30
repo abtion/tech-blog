@@ -47,6 +47,11 @@ and it has had broad browser support since March 2022
 
 Ten years on, adoption of that fix sits at **1.6%**. Barely moved.
 
+Two things keep it stuck:
+
+- **Tools and frameworks** still default to `'unsafe-inline'`
+- **Extension noise** buries the real violations in your reports
+
 <!-- TALKING NOTES (slide 3 — ~3 min)
 Lead with the recent numbers — they are the story. Of the sites that bother with a CSP at all,
 nearly half still ship 'unsafe-inline' and only 1.6% use strict-dynamic.
@@ -54,7 +59,10 @@ The 2016 paper ("CSP Is Dead, Long Live CSP!") proposed strict-dynamic as the fi
 It has had broad browser support since March 2022 — Safari was the last holdout.
 Use the 2016 figures only to frame adoption rate: a decade after the fix was proposed,
 uptake is essentially flat.
-The studies use different methodologies, but the trend line is still clear.
+The two bullets at the bottom are the spine of the whole talk: the secure path is hard
+because frameworks/tools do not default to it, and the reports you rely on are noisy
+because extensions inject without checking CSP. Everything that follows is about fixing
+those two things — for site owners now, and for tool/extension authors going forward.
 Keep this punchy. The numbers do the work.
 -->
 
@@ -455,6 +463,12 @@ is what moves WordPress core forward.
 - Triage for two weeks, then promote to enforcement
 - Use `'strict-dynamic'` with nonces — not domain allowlists
 
+**If you build frameworks or tools:**
+
+- Make `'strict-dynamic'` + a per-request nonce the **default**, not an opt-in recipe
+- Drop inline handlers and `eval` features — ship a CSP-compatible path instead
+- Treat "works under a nonce-based policy" as a support requirement
+
 **If you build browser extensions:**
 
 - Read the CSP header in `webRequest.onHeadersReceived`
@@ -463,8 +477,11 @@ is what moves WordPress core forward.
 
 <!-- TALKING NOTES (slide 16 — ~2 min)
 Closing slide — keep it brief and actionable.
-The two audiences have very different actions to take.
+Three audiences, three different actions — and they map straight back to the two levers
+from the numbers slide.
 For site owners: the report-only → enforce pipeline is low risk and immediately valuable.
+For framework/tool authors: every default that assumes 'unsafe-inline' is a tax on every
+site that integrates it. Adonis Shield and Rails are good examples of getting this right.
 For extension authors: Privacy Badger's commit is a concrete reference implementation.
 -->
 

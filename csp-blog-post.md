@@ -12,9 +12,14 @@ CSP is widely deployed but rarely effective. A June 2026 crawl of the Tranco Top
 
 `'strict-dynamic'` lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. It was proposed as the fix back in a 2016 Google Research study — the same study that found 94.68% of script-restricting policies were ineffective and 99.34% of CSP hosts gained no XSS benefit at all.[^csp-stats] It has been supported across Chrome, Firefox, and Safari since March 2022. A decade on, adoption of the fix that study proposed still sits at 1.6%.
 
-The reason adoption stays low is that the ecosystem makes the secure path hard. Third-party tools, legacy scripts, and CMS platforms still default to `'unsafe-inline'`, and removing it tends to break things — consent banners, tag managers, admin UIs — with fixes that are rarely obvious.
+The reason adoption stays low is that the ecosystem makes the secure path hard. Third-party tools, legacy scripts, and CMS platforms still default to `'unsafe-inline'`, and removing it tends to break things — consent banners, tag managers, admin UIs — with fixes that are rarely obvious. And once you do ship a strict policy, your violation reports fill with noise from browser extensions, making it harder to spot the violations that actually matter.
 
-This post is about what it actually takes to get there anyway, and why it is worth it. Adoption will only rise once services, tools, and frameworks make the secure path the easy one. The other driver is compliance pressure — which is what prompted the most recent CSP implementations we did.
+So this post argues that the numbers above will not move until two groups of people fix things on their side:
+
+- **Frameworks and tools** need to make the secure path the default — generating nonces, propagating them, and shipping `'strict-dynamic'` out of the box, so application developers do not have to assemble it by hand.
+- **Browser extensions** need to respect the page's CSP before injecting, so the reports site owners rely on stay clean and actionable.
+
+Along the way it covers what it actually takes to get there today, framework by framework and breakage by breakage — because someone has to do it manually until the ecosystem catches up. Compliance pressure is currently the main force pushing teams to bother at all; it is what prompted the most recent CSP implementations we did.
 
 ## What `unsafe-*` costs you — and what you gain by removing it
 
@@ -35,6 +40,8 @@ The common alternative — enumerating trusted script domains in `script-src` �
 2. In the `script-src` directive of the CSP header (e.g. `'nonce-ABC123...'`)
 
 The browser matches them: if the nonce on the script tag matches one in the CSP, the script is allowed. If not, it is blocked.
+
+This is exactly the kind of plumbing a framework should own. The examples below show how far apart frameworks currently are: AdonisJS Shield and Rails generate and propagate the nonce for you with a few lines of config, while on WordPress you assemble most of it by hand. The closer a framework gets to making `'strict-dynamic'` the default, the less of this any application developer has to think about — which is the whole point.
 
 Here is how to generate and inject a nonce in various frameworks:
 
@@ -296,6 +303,12 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 - Deploy CSP. Start with `Content-Security-Policy-Report-Only` to build a baseline, then promote to enforcement.
 - Use `'strict-dynamic'` with nonces rather than `'self'` — it is a materially stronger policy.
 - Connect reporting to Sentry or similar, and triage regularly. Not every violation is a problem; learning to tell extension noise from genuine issues is part of operating CSP well.
+
+**For framework and tool authors:**
+
+- Make `'strict-dynamic'` with a per-request nonce the default CSP, not an opt-in recipe. Generate the nonce, expose it to templates, and propagate it to dynamically injected scripts automatically.
+- Stop shipping inline event handlers and `eval`-based features (`onclick="..."`, `javascript:` URLs, Custom JavaScript Variables). Provide a CSP-compatible path \u2014 external listeners, sandboxed APIs \u2014 and document it.
+- Treat "works under a nonce-based `'strict-dynamic'` policy" as a support requirement for consent tools, tag managers, and CMS platforms. Every default that assumes `'unsafe-inline'` is a tax on every site that integrates it.
 
 **For extension authors:**
 
