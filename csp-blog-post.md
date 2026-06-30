@@ -25,7 +25,7 @@ The common alternative â€” enumerating trusted script domains in `script-src` â€
 - No domain allowlist to maintain. You do not need to enumerate every CDN, analytics endpoint, or third-party library host.
 - Minimal nonce propagation. You attach a nonce to your entry-point scripts; `'strict-dynamic'` automatically extends trust to any scripts they load dynamically, without you having to touch them.
 
-A policy that gets you there:
+That translates into a policy like this:
 
 ```
 Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict-dynamic' 'report-sample'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'

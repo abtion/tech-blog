@@ -50,8 +50,8 @@ which provides the authoritative analysis of why allowlists fail in practice.
 ### 7. Sharpen the title ✅ Done
 Changed to: "CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`"
 
-### 8. Weak transition at line 20
-"A policy that gets you there:" — find a stronger lead-in.
+### 8. Weak transition at line 20 ✅ Done
+Replaced "A policy that gets you there:" with "That translates into a policy like this:"
 
 ### 9. GTM Custom Template Code tab screenshot
 The GTM Permissions tab screenshot is in the post. A screenshot of the Code tab
