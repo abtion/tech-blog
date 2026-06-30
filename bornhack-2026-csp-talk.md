@@ -43,6 +43,7 @@ Fast-forward to June 2026 (Tranco Top 1 Million crawl):
 
 - 170,057 sites have a `Content-Security-Policy` header
 - **46.8%** still include `'unsafe-inline'`
+- **41.9%** still include `'unsafe-eval'`
 - Only **1.6%** use `'strict-dynamic'`
 
 Ten years. Barely moved.
@@ -51,6 +52,7 @@ Ten years. Barely moved.
 The 2016 paper ("CSP Is Dead, Long Live CSP!") proposed strict-dynamic as the fix.
 It has had broad browser support since March 2022 — Safari was the last holdout.
 Despite that, adoption is essentially flat. The talk is about why, and what to do about it.
+The studies use different methodologies, but the trend line is still clear.
 Keep this punchy. The numbers do the work.
 -->
 
@@ -339,7 +341,7 @@ elements that do not exist on every page, dynamically-rendered checkboxes, etc.
 
 ## Real world: Google Tag Manager and `eval`
 
-GTM's container snippet supports nonces. The container itself is fine.
+GTM's nonce-aware container snippet supports nonces. The default snippet from GTM UI does not.
 
 The problem: **Custom JavaScript Variables use `eval()`.**
 
@@ -354,6 +356,10 @@ If this line is in your container, you need `'unsafe-eval'` — which defeats CS
 
 <!-- TALKING NOTES (slide 13 — ~3 min)
 URL pattern: https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX
+
+Call out that you need the official nonce-aware snippet from the GTM CSP docs:
+  - `nonce="..."` on the inline bootstrap script
+  - nonce propagation to dynamically injected `gtm.js`
 
 The eval wrapper is there because Custom JavaScript Variables are literally evaluated
 strings — GTM calls eval() on the function body you typed into the UI.
