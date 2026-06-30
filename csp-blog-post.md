@@ -163,7 +163,7 @@ In the template's **Permissions** tab, declare an `Accesses Global Variables` pe
 
 One thing worth knowing: permissions are **not** automatically populated when you paste in the template code — you have to add the key manually. If you skip this step the template silently returns `undefined`, which is easy to miss in testing.
 
-We reported this to CookieInformation in November 2025 and attached a [working template export](./cookie_cat_functional_template.tpl). Their guide has not been updated since. If you are using CookieInformation with GTM, you will need to make this conversion yourself.
+We reported this to CookieInformation in November 2025 and attached a [working template export](./cookie_cat_functional_template.tpl). Their [guide](https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager) has not been updated since (cached on [Web Archive](https://web.archive.org/web/20251109034541/https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager)). If you are using CookieInformation with GTM, you will need to make this conversion yourself.
 
 **How to tell whether your GTM container uses `eval`:** open your container script directly in the browser (`https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX`) and look for this line near the top:
 
