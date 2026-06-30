@@ -466,6 +466,7 @@ For extension authors: Privacy Badger's commit is a concrete reference implement
 
 Resources:
 
+- [Blog post: Implement Content-Security-Policy](./csp-blog-post/)
 - *CSP Is Dead, Long Live CSP!* — Weichselbaum et al., ACM CCS 2016
 - Scott Helme's Top 1 Million Analysis, June 2026
 - [MDN: Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy)

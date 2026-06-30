@@ -23,6 +23,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build presentation HTML from Marp markdown
+        run: |
+          docker run --rm \
+            -v "$PWD":/work \
+            -w /work \
+            marpteam/marp-cli:latest \
+            bornhack-2026-csp-talk.md \
+            -o bornhack-2026-csp-talk.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
