@@ -18,7 +18,7 @@ The reason is not carelessness. It is that removing `'unsafe-inline'` and `'unsa
 
 `'unsafe-eval'` is similarly corrosive: it permits `eval()`, `new Function()`, and similar constructs, which are the classic vehicle for turning injected strings into executing code.
 
-The common alternative — enumerating trusted script domains in `script-src` — is better than `'unsafe-inline'` but still leaves you exposed to any script hosted on those domains, including ones an attacker could place there.
+The common alternative — enumerating trusted script domains in `script-src` — is better than `'unsafe-inline'` but still leaves you exposed to any script hosted on those domains[^csp-allowlist-weakness], including ones an attacker could place there.
 
 **The payoff for eliminating `'unsafe-*'` from `script-src` is `'strict-dynamic'`[^strict-dynamic].** Once inline scripts and eval are off the table, you can use a nonce-based policy with `'strict-dynamic'`, which is considerably simpler to operate than the alternatives:
 
@@ -195,6 +195,8 @@ The same pattern applies to any Custom JavaScript Variable in your container: id
 ---
 
 [^csp-stats]: Weichselbaum, Spagnuolo, Lekies, Janc. *CSP Is Dead, Long Live CSP! On the Insecurity of Whitelists and the Future of Content Security Policy*. ACM CCS 2016. [Full PDF](https://dl.acm.org/doi/pdf/10.1145/2976749.2978363).
+
+[^csp-allowlist-weakness]: See Weichselbaum et al. (above) for detailed analysis of why allowlist-based CSP is fundamentally weak.
 
 [^csp-2026]: Scott Helme. *Top 1 Million Analysis — June 2026: Ten Years of Web Security*. [scotthelme.co.uk](https://scotthelme.co.uk/top-1-million-analysis-june-2026-ten-years-of-web-security/). Crawl of 819,002 responding sites from the Tranco Top 1 Million list. Of 170,057 sites with a CSP: 46.8% use `'unsafe-inline'`, 41.9% use `'unsafe-eval'`, 24.7% use a nonce, 1.6% use `'strict-dynamic'`.
 

@@ -35,17 +35,13 @@ in `csp-blog-post.md`, plus links to the live CookieInformation guide and a Web 
 Updated `csp-blog-post.md` to clarify MV3 behaviour: `webRequest.onHeadersReceived`
 still works for passive response-header inspection in the extension-author guidance.
 
-### 5. Connect `'report-sample'` to the `script-sample` field
-The monitoring section tells readers to look at the `script-sample` field in violation reports,
-but does not explain that `'report-sample'` in the policy is what populates it.
-Add a one-sentence link between the two.
+### 5. Connect `'report-sample'` to the `script-sample` field ✅ Done
+Updated `csp-blog-post.md` to explain that adding `'report-sample'` to `script-src`
+is what populates the `script-sample` field in CSP violation reports.
 
-### 6. Explain *why* domain allowlists are weak
-The post says allowlists "leave you exposed to any script hosted on those domains" without
-explaining why that matters in practice. Add a concrete example:
-- A CDN that hosts user-uploaded content
-- An analytics provider with a JSONP endpoint (e.g. `?callback=alert(1)`)
-This sharpens the argument for preferring `'strict-dynamic'` over allowlists.
+### 6. Explain *why* domain allowlists are weak ✅ Done
+Linked the allowlist weakness statement to the Weichselbaum et al. CSP paper (already cited),
+which provides the authoritative analysis of why allowlists fail in practice.
 
 ---
 
