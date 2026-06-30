@@ -8,9 +8,11 @@ permalink: /csp-blog-post/
 
 Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
 
-CSP is widely deployed but rarely effective. A 2016 Google Research study found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no XSS benefit at all.[^csp-stats] That same paper proposed `'strict-dynamic'` as the solution: a directive that lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. `'strict-dynamic'` has been supported across Chrome, Firefox, and Safari since March 2022 — yet a June 2026 crawl of the Tranco Top 1 Million sites found that of 170,057 sites with a CSP, **46.8% still contain `'unsafe-inline'`** and only 1.6% use `'strict-dynamic'`.[^csp-2026] The underlying problem — third-party tools, legacy scripts, and CMS platforms defaulting to `'unsafe-inline'` — has not gone away.
+CSP is widely deployed but rarely effective. A 2016 Google Research study found that 94.68% of policies attempting to limit script execution are ineffective — and 99.34% of hosts with CSP use policies that offer no XSS benefit at all.[^csp-stats] That same paper proposed `'strict-dynamic'` as the solution: a directive that lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. `'strict-dynamic'` has been supported across Chrome, Firefox, and Safari since March 2022 — yet a June 2026 crawl of the Tranco Top 1 Million sites found that of 170,057 sites with a CSP, **46.8% still contain `'unsafe-inline'`** and only 1.6% use `'strict-dynamic'`.[^csp-2026]
 
-The reason is not carelessness. It is that removing `'unsafe-inline'` and `'unsafe-eval'` breaks things — third-party consent banners, tag managers, admin UIs — and the fixes are not obvious. This post is about what it actually takes to get there, and why it is worth it.
+The reason adoption stays low is that the ecosystem makes the secure path hard. Third-party tools, legacy scripts, and CMS platforms still default to `'unsafe-inline'`, and removing it tends to break things — consent banners, tag managers, admin UIs — with fixes that are rarely obvious.
+
+This post is about what it actually takes to get there anyway, and why it is worth it. Adoption will only rise once services, tools, and frameworks make the secure path the easy one. The other driver is compliance pressure — which is what prompted the most recent CSP implementations we did.
 
 ## What `unsafe-*` costs you — and what you gain by removing it
 
