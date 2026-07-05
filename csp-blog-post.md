@@ -4,6 +4,8 @@ title: "CSP: dropping 'unsafe-inline' — a practical path to 'strict-dynamic'"
 permalink: /csp-blog-post/
 ---
 
+Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
+
 # What is CSP
 
 Content Security Policy (CSP) is a browser security header that tells the browser which sources of code and content a page is allowed to use. It does not remove XSS bugs, but it can stop many exploits from turning into JavaScript execution by blocking untrusted scripts, inline handlers, and unsafe dynamic evaluation.
@@ -39,8 +41,6 @@ That closes the `value` attribute and the `<input>` tag, then injects a script t
 A strict CSP (`script-src 'nonce-…' 'strict-dynamic'`) blocks the injected `<script>` from executing entirely — the payload never runs, even though the injection itself succeeded.
 
 # CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
-
-Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
 
 CSP is widely deployed but rarely effective. A June 2026 crawl of the Tranco Top 1 Million sites found 170,057 with a CSP — yet **46.8% still contain `'unsafe-inline'`**, 41.9% allow `'unsafe-eval'`, and only 24.7% carry a nonce. Just **1.6% use `'strict-dynamic'`**, the one directive that makes a script policy actually hold up.[^csp-2026]
 
