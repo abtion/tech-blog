@@ -4,6 +4,12 @@ title: "CSP: dropping 'unsafe-inline' — a practical path to 'strict-dynamic'"
 permalink: /csp-blog-post/
 ---
 
+# What is CSP
+
+Content Security Policy (CSP) is a browser security header that tells the browser which sources of code and content a page is allowed to use. It does not remove XSS bugs, but it can stop many exploits from turning into JavaScript execution by blocking untrusted scripts, inline handlers, and unsafe dynamic evaluation.
+
+In practical terms, CSP is a safety net around your rendering layer: if attacker-controlled input slips through your sanitization and output encoding, a well-configured policy can still prevent the payload from running.
+
 # CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
 
 Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
