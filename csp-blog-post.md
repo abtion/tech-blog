@@ -10,6 +10,22 @@ Content Security Policy (CSP) is a browser security header that tells the browse
 
 In practical terms, CSP is a safety net around your rendering layer: if attacker-controlled input slips through your sanitization and output encoding, a well-configured policy can still prevent the payload from running.
 
+# Example of injection
+
+Suppose a page reflects a query parameter directly into the DOM:
+
+```html
+<div id="message">Welcome, {{ user_input }}</div>
+```
+
+If an attacker can supply a value like this:
+
+```html
+<img src=x onerror="alert('XSS')">
+```
+
+the browser will execute the inline handler unless the page blocks inline script execution with a strict CSP.
+
 # CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
 
 Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
