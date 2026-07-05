@@ -45,8 +45,6 @@ June 2026 (Tranco Top 1 Million crawl):
 The fix has been ready for years. A 2016 Google Research study proposed `'strict-dynamic'` —
 and it has had broad browser support since March 2022
 
-Ten years on, adoption of that fix sits at **1.6%**. Barely moved.
-
 Two things keep it stuck:
 
 - **Tools and frameworks** still default to `'unsafe-inline'`
