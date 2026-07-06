@@ -38,7 +38,16 @@ If an attacker can get a victim to open a crafted URL, the injected `username` v
 
 That closes the `value` attribute and the `<input>` tag, then injects a script that silently exfiltrates every keystroke typed into the password field. The victim sees a normal-looking login page; the attacker receives the password in real time.
 
-A strict CSP (`script-src 'nonce-…' 'strict-dynamic'`) blocks the injected `<script>` from executing entirely — the payload never runs, even though the injection itself succeeded.
+# Blocking with CSP
+
+Two CSP directives can stop this particular attack, so that the payload never runs, even though the injection itself succeeded.
+
+- `script-src` will restrict what sources of code are allowed to run in the browser. If set to `unsafe-inline`, it allows the code to run.
+- `connect-src` will restrict what `fetch` is allowed to connect to. If set to `https`, it allows connecting to any domain.
+
+You can also set an allowlist of domains, list allowed hashes of sources, and set a nonce value that html tags must have.
+This must be done for the entire chain; meaning if a script inserts another `<script>` tag, it must also be allowed in the allowlist, or hashes, or have the nonce attribute.
+The chain is hard to maintain, if you use external scripts that are out of your control.
 
 # CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
 
