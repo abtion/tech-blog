@@ -8,7 +8,8 @@ Presentation version: [CSP in 2026 slides](./bornhack-2026-csp-talk.html).
 
 # What is CSP
 
-Content Security Policy (CSP) is a browser security header that tells the browser which sources of code and content a page is allowed to use. It does not remove XSS bugs, but it can stop many exploits from turning into JavaScript execution by blocking untrusted scripts, inline handlers, and unsafe dynamic evaluation.
+Content Security Policy (CSP) is a browser security header that tells the browser which sources of code and content a page is allowed to use.
+It does not remove XSS bugs, but it can stop many exploits from turning into JavaScript execution by blocking untrusted scripts, inline handlers, and unsafe dynamic evaluation.
 
 In practical terms, CSP is a safety net around your rendering layer: if attacker-controlled input slips through your sanitization and output encoding, a well-configured policy can still prevent the payload from running.
 
@@ -51,22 +52,33 @@ The chain is hard to maintain, if you use external scripts that are out of your 
 
 # CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
 
-CSP is widely deployed but rarely effective. A June 2026 crawl of the Tranco Top 1 Million sites found 170,057 with a CSP — yet **46.8% still contain `'unsafe-inline'`**, 41.9% allow `'unsafe-eval'`, and only 24.7% carry a nonce. Just **1.6% use `'strict-dynamic'`**, the one directive that makes a script policy actually hold up.[^csp-2026]
+CSP is widely deployed but rarely effective.
+A June 2026 crawl of the Tranco Top 1 Million sites found 170,057 with a CSP — yet **46.8% still contain `'unsafe-inline'`**, 41.9% allow `'unsafe-eval'`, and only 24.7% carry a nonce.
+Just **1.6% use `'strict-dynamic'`**, the one directive that makes a script policy actually hold up.[^csp-2026]
 
-`'strict-dynamic'` lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden. It was proposed as the fix back in a 2016 Google Research study — the same study that found 94.68% of script-restricting policies were ineffective and 99.34% of CSP hosts gained no XSS benefit at all.[^csp-stats] It has been supported across Chrome, Firefox, and Safari since March 2022. A decade on, adoption of the fix that study proposed still sits at 1.6%.
+`'strict-dynamic'` lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden.
+`'strict-dynamic'` was proposed as the fix back in a 2016 Google Research study — the same study that found 94.68% of script-restricting policies were ineffective and 99.34% of CSP hosts gained no XSS benefit at all.[^csp-stats]
+It has been supported across Chrome, Firefox, and Safari since March 2022.
+A decade on, adoption of the fix that study proposed still sits at 1.6%.
 
-The reason adoption stays low is that the ecosystem makes the secure path hard. Third-party tools, legacy scripts, and CMS platforms still default to `'unsafe-inline'`, and removing it tends to break things — consent banners, tag managers, admin UIs — with fixes that are rarely obvious. And once you do ship a strict policy, your violation reports fill with noise from browser extensions, making it harder to spot the violations that actually matter.
+The reason adoption stays low is that the ecosystem makes the secure path hard.
+Third-party tools, legacy scripts, and CMS platforms still default to `'unsafe-inline'`, and removing it tends to break things — consent banners, tag managers, admin UIs — with fixes that are rarely obvious.
+And once you do ship a strict policy, your violation reports fill with noise from browser extensions, making it harder to spot the violations that actually matter.
 
 So this post argues that the numbers above will not move until two groups of people fix things on their side:
 
 - **Frameworks and tools** need to make the secure path the default — generating nonces, propagating them, and shipping `'strict-dynamic'` out of the box, so application developers do not have to assemble it by hand.
 - **Browser extensions** need to respect the page's CSP before injecting, so the reports site owners rely on stay clean and actionable.
 
-Along the way it covers what it actually takes to get there today, framework by framework and breakage by breakage — because someone has to do it manually until the ecosystem catches up. Compliance pressure is currently the main force pushing teams to bother at all — and a lot of that pressure comes from public header-grading tools like [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory], which put a visible letter grade on your site and surface `'unsafe-inline'` as a finding. A failing grade in a security questionnaire or pen-test report is what prompted the most recent CSP implementations we did.
+Along the way it covers what it actually takes to get there today, framework by framework and breakage by breakage — because someone has to do it manually until the ecosystem catches up.
+Compliance pressure is currently the main force pushing teams to bother at all — and a lot of that pressure comes from public header-grading tools like [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory], which put a visible letter grade on your site and surface `'unsafe-inline'` as a finding.
+A failing grade in a security questionnaire or pen-test report is what prompted the most recent CSP implementations we did.
 
 ## What `unsafe-*` costs you — and what you gain by removing it
 
-`'unsafe-inline'` in `script-src` allows any inline script on the page to execute. That includes the ones an attacker injected. It does not matter how the injection happened — a reflected parameter, a stored payload, a compromised dependency. If `'unsafe-inline'` is present, CSP will not stop it.
+`'unsafe-inline'` in `script-src` allows any inline script on the page to execute. That includes the ones an attacker injected.
+It does not matter how the injection happened — a reflected parameter, a stored payload, a compromised dependency.
+If `'unsafe-inline'` is present, CSP will not stop it.
 
 `'unsafe-eval'` is similarly corrosive: it permits `eval()`, `new Function()`, and similar constructs, which are the classic vehicle for turning injected strings into executing code.
 
@@ -86,7 +98,9 @@ The common alternative — enumerating trusted script domains in `script-src` �
 
 The browser matches them: if the nonce on the script tag matches one in the CSP, the script is allowed. If not, it is blocked.
 
-This is exactly the kind of plumbing a framework should own. The examples below show how far apart frameworks currently are: AdonisJS Shield and Rails generate and propagate the nonce for you with a few lines of config, while on WordPress you assemble most of it by hand. The closer a framework gets to making `'strict-dynamic'` the default, the less of this any application developer has to think about — which is the whole point.
+This is exactly the kind of plumbing a framework should own.
+The examples below show how far apart frameworks currently are: AdonisJS Shield and Rails generate and propagate the nonce for you with a few lines of config, while on WordPress you assemble most of it by hand.
+The closer a framework gets to making `'strict-dynamic'` the default, the less of this any application developer has to think about — which is the whole point.
 
 Here is how to generate and inject a nonce in various frameworks:
 
@@ -110,7 +124,8 @@ const shieldConfig = defineConfig({
 export default shieldConfig
 ```
 
-Shield automatically generates a unique nonce for each request. In Edge templates, use the `cspNonce` variable:
+Shield automatically generates a unique nonce for each request.
+In Edge templates, use the `cspNonce` variable:
 
 ```html
 <script nonce="{{ cspNonce }}">
@@ -184,9 +199,15 @@ Content-Security-Policy: default-src 'none'; script-src 'nonce-{random}' 'strict
 - `style-src 'unsafe-inline'` is a common addition, when frameworks inject inline styles; accept it as a known trade-off, if needed.
 - `frame-ancestors 'none'` and `base-uri 'none'` is not covered by `default-src` and must always be set explicitly — it provides clickjacking protection.
 
-**Why you still need allowlists for other directives:** Nonces work for `script-src` because you control the inline `<script>` tags — you can stamp each one with the nonce at render time. But for images, fonts, stylesheets, and API endpoints, you cannot embed a nonce. An `<img>` tag requesting `https://analytics.example.com/pixel.gif` has no nonce attribute to carry. Instead, you allowlist the origin: `img-src 'self' https://analytics.example.com`. This is still far simpler than maintaining an allowlist for scripts (especially when `'strict-dynamic'` takes over that burden), but it means your CSP policy will contain domain allowlists in practice.
+**Why you still need allowlists for other directives:**
+Nonces work for `script-src` because you control the inline `<script>` tags — you can stamp each one with the nonce at render time.
+But for images, fonts, stylesheets, and API endpoints, you cannot embed a nonce.
+An `<img>` tag requesting `https://analytics.example.com/pixel.gif` has no nonce attribute to carry.
+Instead, you allowlist the origin: `img-src 'self' https://analytics.example.com`.
+This is still far simpler than maintaining an allowlist for scripts (especially when `'strict-dynamic'` takes over that burden), but it means your CSP policy will contain domain allowlists in practice.
 
-CSP is defence-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs. But a policy like this makes XSS dramatically harder to exploit.
+CSP is defence-in-depth, not a substitute for proper output encoding, sanitization, and safe DOM APIs.
+But a policy like this makes XSS dramatically harder to exploit.
 
 ## A real-world example: WordPress with CookieInformation and GTM
 
@@ -194,9 +215,11 @@ Here is what we ran into implementing CSP on a WordPress project.
 
 ### CookieInformation
 
-The CookieInformation consent popup ships with inline event handlers throughout its template HTML — `onclick="CookieInformation.declineAllCategories()"`, `href="javascript:CookieConsent.renew();"`, and so on. A policy without `'unsafe-inline'` blocks all of these silently, leaving a banner with buttons that do nothing.
+The CookieInformation consent popup ships with inline event handlers throughout its template HTML — `onclick="CookieInformation.declineAllCategories()"`, `href="javascript:CookieConsent.renew();"`, and so on.
+A policy without `'unsafe-inline'` blocks all of these silently, leaving a banner with buttons that do nothing.
 
-[CookieInformation documents the fix](https://support.cookieinformation.com/articles/customization/consent-popup/csp-implementation/): strip the inline handlers from the template and wire the same behaviour up using `addEventListener` in your own external script. In practice it looked like this — before:
+[CookieInformation documents the fix](https://support.cookieinformation.com/articles/customization/consent-popup/csp-implementation/): strip the inline handlers from the template and wire the same behaviour up using `addEventListener` in your own external script.
+In practice it looked like this — before:
 
 ```html
 <button id="declineButton" onclick="CookieInformation.declineAllCategories()">
@@ -215,7 +238,8 @@ document.getElementById('declineButton')
   .addEventListener('click', () => CookieInformation.declineAllCategories());
 ```
 
-Every button and anchor with an inline handler needed the same treatment. Expect a handful of follow-up fixes as you discover edge cases in the live template — elements that don't exist on every page, category checkboxes that render dynamically, and so on.
+Every button and anchor with an inline handler needed the same treatment.
+Expect a handful of follow-up fixes as you discover edge cases in the live template — elements that don't exist on every page, category checkboxes that render dynamically, and so on.
 
 You also need to add two extra directives to allow the popup to load its policy iframe and contact its API:
 
@@ -227,18 +251,24 @@ connect-src 'self' https://policy.app.cookieinformation.com/
 
 ### WordPress admin
 
-One area we did not fully resolve: the WordPress admin UI itself. A strict CSP breaks a significant portion of wp-admin — the editor, media library, and various plugins all rely on inline scripts and `eval`. This is a known, long-standing issue in WordPress core, with active tickets tracking the work ([#59446](https://core.trac.wordpress.org/ticket/59446), [#39941](https://core.trac.wordpress.org/ticket/39941#comment:123)). Core committer [westonruter](https://core.trac.wordpress.org/ticket/39941#comment:123) has been the most active developer on it.
+One area we did not fully resolve: the WordPress admin UI itself.
+A strict CSP breaks a significant portion of wp-admin — the editor, media library, and various plugins all rely on inline scripts and `eval`.
+This is a known, long-standing issue in WordPress core, with active tickets tracking the work ([#59446](https://core.trac.wordpress.org/ticket/59446), [#39941](https://core.trac.wordpress.org/ticket/39941#comment:123)).
+Core committer [westonruter](https://core.trac.wordpress.org/ticket/39941#comment:123) has been the most active developer on it.
 
 In practice you have two options:
 
 - **Scope the policy to the public site only.** Apply a strict CSP on the front-end and use a looser policy (or none) for `/wp-admin`. Most of the security value is on the public-facing side anyway.
 - **Allowlist admin scripts by hash.** Possible in principle but maintenance-heavy — hashes change whenever WordPress updates.
 
-If full CSP coverage of wp-admin matters to your client, consider contributing to the core tickets — testing patches, reviewing proposed solutions, or picking up stalled work. Active development in this area appears to have stalled as of late 2025, and community involvement is what moves WordPress core forward.
+If full CSP coverage of wp-admin matters to your client, consider contributing to the core tickets — testing patches, reviewing proposed solutions, or picking up stalled work.
+Active development in this area appears to have stalled as of late 2025, and community involvement is what moves WordPress core forward.
 
 ### Google Tag Manager
 
-GTM's container snippet accepts a `nonce` attribute and propagates it to any scripts it injects dynamically, so the container itself plays nicely with a nonce-based policy — but only if you use the nonce-aware version of the snippet. The standard snippet copied from the GTM UI does not include the propagation code. The [official nonce-aware version](https://developers.google.com/tag-platform/security/guides/csp) looks like this:
+GTM's container snippet accepts a `nonce` attribute and propagates it to any scripts it injects dynamically, so the container itself plays nicely with a nonce-based policy — but only if you use the nonce-aware version of the snippet.
+The standard snippet copied from the GTM UI does not include the propagation code.
+The [official nonce-aware version](https://developers.google.com/tag-platform/security/guides/csp) looks like this:
 
 ```html
 <!-- Google Tag Manager -->
@@ -251,15 +281,20 @@ n&&j.setAttribute('nonce',n.nonce||n.getAttribute('nonce'));f.parentNode.insertB
 <!-- End Google Tag Manager -->
 ```
 
-Two things differ from the standard snippet: the `nonce` attribute on the outer `<script>` tag (which is what your CSP `script-src` authorises), and the propagation line near the end — `d.querySelector('[nonce]')` followed by `j.setAttribute('nonce', ...)` — which forwards the same nonce to the dynamically injected `gtm.js` request. The nonce value must match the one you inject into the `Content-Security-Policy` header on the same response.
+Two things differ from the standard snippet: the `nonce` attribute on the outer `<script>` tag (which is what your CSP `script-src` authorises), and the propagation line near the end — `d.querySelector('[nonce]')` followed by `j.setAttribute('nonce', ...)` — which forwards the same nonce to the dynamically injected `gtm.js` request.
+The nonce value must match the one you inject into the `Content-Security-Policy` header on the same response.
 
 The problem is **Custom JavaScript Variables**.
 
-GTM evaluates Custom JavaScript Variables using `eval()`. CSP blocks `eval()` unless `'unsafe-eval'` is present in `script-src` — and adding `'unsafe-eval'` largely defeats the point of having CSP in the first place.
+GTM evaluates Custom JavaScript Variables using `eval()`.
+CSP blocks `eval()` unless `'unsafe-eval'` is present in `script-src` — and adding `'unsafe-eval'` largely defeats the point of having CSP in the first place.
 
-The [GTM documentation](https://developers.google.com/tag-platform/security/guides/csp#custom_javascript_variables) explicitly names **Custom Templates** as the recommended alternative. They run in GTM's sandboxed JavaScript environment and do not require `eval`. What the documentation does not do is show you how to migrate.
+The [GTM documentation](https://developers.google.com/tag-platform/security/guides/csp#custom_javascript_variables) explicitly names **Custom Templates** as the recommended alternative.
+They run in GTM's sandboxed JavaScript environment and do not require `eval`.
+What the documentation does not do is show you how to migrate.
 
-Here is a concrete example. CookieInformation's [GTM integration guide](https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager) instructs you to create a Custom JavaScript Variable per consent category:
+Here is a concrete example.
+CookieInformation's [GTM integration guide](https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager) instructs you to create a Custom JavaScript Variable per consent category:
 
 ```js
 // Custom JavaScript Variable — breaks under CSP
@@ -284,9 +319,12 @@ In the template's **Permissions** tab, declare an `Accesses Global Variables` pe
 
 ![GTM Permissions tab showing CookieInformation.getConsentGivenFor with execute: true](images/gtm-permissions-tab.png)
 
-One thing worth knowing: permissions are **not** automatically populated when you paste in the template code — you have to add the key manually. If you skip this step the template silently returns `undefined`, which is easy to miss in testing.
+One thing worth knowing: permissions are **not** automatically populated when you paste in the template code — you have to add the key manually.
+If you skip this step the template silently returns `undefined`, which is easy to miss in testing.
 
-We reported this to CookieInformation in November 2025 and attached a [working template export](./cookie_cat_functional_template.tpl). Their [guide](https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager) has not been updated at the time of writing (2026-06-30) (cached on [Web Archive](https://web.archive.org/web/20251109034541/https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager)). If you are using CookieInformation with GTM, you will need to make this conversion yourself.
+We reported this to CookieInformation in November 2025 and attached a [working template export](./cookie_cat_functional_template.tpl).
+Their [guide](https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager) has not been updated at the time of writing (2026-06-30) (cached on [Web Archive](https://web.archive.org/web/20251109034541/https://support.cookieinformation.com/en/articles/5451615-integrate-cookie-information-consent-management-platform-with-google-tag-manager)).
+If you are using CookieInformation with GTM, you will need to make this conversion yourself.
 
 **How to tell whether your GTM container uses `eval`:** open your container script directly in the browser (`https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX`) and look for this line near the top:
 
@@ -298,7 +336,9 @@ If it is there, your container has at least one Custom JavaScript Variable and w
 
 ![GTM container script showing the eval wrapper function](images/gtm-eval-in-container.png)
 
-The same pattern applies to any Custom JavaScript Variable in your container: identify the `window` method or property it calls, replace the direct call with `callInWindow` or `copyFromWindow`, and declare the corresponding permission. The full list of sandboxed APIs is in the [GTM template API reference](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript). Common replacements: `copyFromWindow` for reading globals, `copyFromDataLayer` for dataLayer reads, and `getUrl` for URL parts.
+The same pattern applies to any Custom JavaScript Variable in your container: identify the `window` method or property it calls, replace the direct call with `callInWindow` or `copyFromWindow`, and declare the corresponding permission.
+The full list of sandboxed APIs is in the [GTM template API reference](https://developers.google.com/tag-platform/tag-manager/templates/sandboxed-javascript).
+Common replacements: `copyFromWindow` for reading globals, `copyFromDataLayer` for dataLayer reads, and `getUrl` for URL parts.
 
 ## Start in report-only mode
 
@@ -316,17 +356,23 @@ Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sen
 
 The older `report-uri` directive still works and has wider browser support — worth keeping both while `report-to` adoption matures.
 
-Once your violation reports reflect only intentional usage, you can promote the header to enforcement. To grade the policy you end up with, scan your site with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory] — it assesses your response headers, calls out weak directives such as `'unsafe-inline'`, and gives you a single score to track as you tighten things up.
+Once your violation reports reflect only intentional usage, you can promote the header to enforcement.
+To grade the policy you end up with, scan your site with [Mozilla's HTTP Observatory](https://developer.mozilla.org/en-US/observatory)[^observatory] — it assesses your response headers, calls out weak directives such as `'unsafe-inline'`, and gives you a single score to track as you tighten things up.
 
 ## Monitor your violations — but expect noise
 
-Connecting CSP reporting to Sentry (or a similar platform) gives you visibility into violations as they happen. Many violations will be actionable: misconfigured third-party integrations, forgotten inline event handlers, legacy scripts that need nonces.
+Connecting CSP reporting to Sentry (or a similar platform) gives you visibility into violations as they happen.
+Many violations will be actionable: misconfigured third-party integrations, forgotten inline event handlers, legacy scripts that need nonces.
 
-It is worth being clear about what these reports are *for*. CSP is a defence-in-depth measure: it does not stop injection, it stops injected scripts from executing. So a `script-src` violation can be the most valuable signal you get — an attacker's injection that made it past your output encoding and sanitization, caught by CSP on the way out. To be useful, your violation stream should surface exactly those: real sanitization failures in the app CSP is protecting.
+It is worth being clear about what these reports are *for*.
+CSP is a defence-in-depth measure: it does not stop injection, it stops injected scripts from executing.
+So a `script-src` violation can be the most valuable signal you get — an attacker's injection that made it past your output encoding and sanitization, caught by CSP on the way out.
+To be useful, your violation stream should surface exactly those: real sanitization failures in the app CSP is protecting.
 
 **But a significant share will be noise from your users' browser extensions** — and that noise is not just untidy, it actively hides those unsuccessful attack attempts in the pile.
 
-VPN clients, anti-virus products, and ad blockers routinely inject inline scripts into pages as part of their normal operation — fingerprinting detection, tracker blocking, ad replacement. When your CSP blocks those injections, the browser sends a violation report.
+VPN clients, anti-virus products, and ad blockers routinely inject inline scripts into pages as part of their normal operation — fingerprinting detection, tracker blocking, ad replacement.
+When your CSP blocks those injections, the browser sends a violation report.
 
 In practice you'll see things like:
 
@@ -334,16 +380,25 @@ In practice you'll see things like:
 - `blocked 'connect' from 'example.com'` — an extension is making requests to its own backend
 - `blocked 'font' from 'example.com'` — an extension injected UI that loads fonts from external origins
 
-These are often not vulnerabilities in your app and are frequently not actionable for the site owner. Filtering them out requires some manual triage: look at whether violations are appearing consistently across many different users and unrelated pages, correlate with the `script-sample`, `source-file`, and `blocked-uri` fields in the report, and be sceptical of anything that appears at high volume with no clear origin in your own codebase.
+These are often not vulnerabilities in your app and are frequently not actionable for the site owner.
+Filtering them out requires some manual triage: look at whether violations are appearing consistently across many different users and unrelated pages, correlate with the `script-sample`, `source-file`, and `blocked-uri` fields in the report, and be sceptical of anything that appears at high volume with no clear origin in your own codebase.
 That `script-sample` field is populated by adding `'report-sample'` to `script-src`, which is why the example policies above include it.
 
 ## Browser extension: Respecting the page's CSP
 
-This noise problem is solvable on the extension side. Extensions that inject inline scripts or page-context DOM resources should check the `Content-Security-Policy` response header before attempting those injections, and skip them when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards.
+This noise problem is solvable on the extension side.
+Extensions that inject inline scripts or page-context DOM resources should check the `Content-Security-Policy` response header before attempting those injections, and skip them when the policy would block it.
+If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards.
 
-Privacy Badger, the open-source tracker-blocking extension from the EFF, is a good test case. Four of its feature detectors — fingerprinting detection, supercookie detection, the script-clobbering check, and DNT verification — call `injectScript()` to run code in the page context regardless of whether the page's CSP allows inline scripts. On a strict policy that injection is blocked, which pollutes the console and lands a violation in the site owner's reports for no benefit.
+Privacy Badger, the open-source tracker-blocking extension from the EFF, is a good test case.
+Four of its feature detectors — fingerprinting detection, supercookie detection, the script-clobbering check, and DNT verification — call `injectScript()` to run code in the page context regardless of whether the page's CSP allows inline scripts.
+On a strict policy that injection is blocked, which pollutes the console and lands a violation in the site owner's reports for no benefit.
 
-We opened [a pull request (#3200)](https://github.com/EFForg/privacybadger/pull/3200) to fix exactly this. It reads the `Content-Security-Policy` response header in `onHeadersReceived()`, records per-frame whether inline scripts are allowed — parsing `script-src` (falling back to `default-src`) and handling `'unsafe-inline'`, nonces, hashes, `'strict-dynamic'`, and multiple CSP headers — and has those four handlers return early so `injectScript()` is never called when the policy would block it. If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards. An example of an extension being a respectful citizen of the pages it runs on. (It handles CSP delivered via response headers; CSP in `<meta>` tags is out of scope for the extension API approach.)
+We opened [a pull request (#3200)](https://github.com/EFForg/privacybadger/pull/3200) to fix exactly this.
+It reads the `Content-Security-Policy` response header in `onHeadersReceived()`, records per-frame whether inline scripts are allowed — parsing `script-src` (falling back to `default-src`) and handling `'unsafe-inline'`, nonces, hashes, `'strict-dynamic'`, and multiple CSP headers — and has those four handlers return early so `injectScript()` is never called when the policy would block it.
+If a detection feature can't run on a given page, it simply doesn't run — no console error, no violation report landing in your clients' dashboards.
+An example of an extension being a respectful citizen of the pages it runs on.
+(It handles CSP delivered via response headers; CSP in `<meta>` tags is out of scope for the extension API approach.)
 
 ## Recommendations
 
