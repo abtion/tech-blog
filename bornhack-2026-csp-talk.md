@@ -8,6 +8,9 @@ paginate: true
 
 **BornHack 2026**
 
+By Rune Philosof
+Software Developer at Abtion
+
 <!-- TALKING NOTES (slide 1 — ~1 min)
 Introduce yourself. One sentence on where you work and what you do.
 Mention that the talk is rooted in a real implementation project you worked on recently —
