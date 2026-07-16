@@ -76,7 +76,13 @@ Some things keeping it stuck:
 - **Extension noise** buries the real violations in your reports
 - Some **Libraries and plugins** still do not support nonces
 
-<!-- TALKING NOTES (slide 6 — ~4 min)
+<!-- TALKING NOTES (slide 4 — ~3 min)
+This slide previews the three threads the rest of the talk picks up. Webflow has no CSP
+support at all. WordPress does not support CSP in the wp-admin interface — covered in
+depth later in the WordPress admin slide. Rails ships strict-dynamic + nonce support via
+a few lines of config; it's the model other frameworks should follow, contrast with
+WordPress later. Extension noise burying real violations gets its own deep dive near the
+end of the talk. Keep this slide brief — it's a signpost, not the payload.
 -->
 
 ---
@@ -99,7 +105,7 @@ That includes the ones *an attacker injected*.
 
 **CSP with `'unsafe-inline'` does not stop XSS.**
 
-<!-- TALKING NOTES (slide 4 — ~3 min)
+<!-- TALKING NOTES (slide 5 — ~3 min)
 Be concrete. The audience will know what XSS is — skip the primer.
 The point is that 'unsafe-inline' specifically neutralises the one thing script-src is
 there to do: prevent unauthorised script execution.
@@ -122,7 +128,7 @@ setTimeout(attackerPayload)  // also counts
 
 Removing `'unsafe-eval'`, makes it even harder to exploit injections.
 
-<!-- TALKING NOTES (slide 5 — ~2 min)
+<!-- TALKING NOTES (slide 6 — ~2 min)
 This presentation is mostly about unsafe-inline, but I will touch on unsafe-eval with respect to Google Tag Manager later.
 -->
 
@@ -139,7 +145,15 @@ And allowlisting a whole cdn domain is problematic.
 
 Injected inline scripts won't work.
 
-<!-- TALKING NOTES (slide 6 — ~4 min)
+<!-- TALKING NOTES (slide 7 — ~2 min)
+Transition slide: without 'unsafe-inline' you have to account for every script your page
+loads, including ones injected by third-party libraries you do not control.
+Allowlisting an entire CDN domain is weak — it trusts everything hosted there, including
+anything an attacker could place on that same domain. That is the allowlist weakness the
+2016 paper called out.
+Injected inline scripts are the hard failure case: no allowlist entry saves you there —
+only 'unsafe-inline' or a matching nonce/hash would, and you do not want to grant either
+broadly. This pain is exactly why 'strict-dynamic' exists — next slide.
 -->
 
 ---
@@ -149,6 +163,12 @@ Injected inline scripts won't work.
 The fix has been ready for years. A 2016 Google Research study proposed `'strict-dynamic'` —
 and it has had broad browser support since March 2022
 
+<!-- TALKING NOTES (slide 8 — ~1 min)
+Emphasize the timeline: proposed in 2016, universally supported since Safari added it in
+March 2022. That is four years of full browser support with adoption still stuck around
+1.5%. Keep this slide short and punchy — let the timeline speak, then move to what
+strict-dynamic actually does.
+-->
 
 ---
 
@@ -159,6 +179,14 @@ so injected scripts are allowed, if they are injected by trusted scripts.
 
 However, disables use of URI allowlists (and 'unsafe-inline').
 
+<!-- TALKING NOTES (slide 9 — ~2 min)
+Core mechanic: trust propagates transitively from your nonced entry-point scripts to
+whatever they load. Flag the trade-off immediately: strict-dynamic disables host/scheme
+allowlists in script-src (and unsafe-inline) — browsers that understand strict-dynamic
+ignore those other source expressions entirely. That is intentional: it is what closes
+the allowlist weakness from the earlier slide. The next slide shows the nonce mechanics
+that make this work in practice.
+-->
 
 ---
 
@@ -180,7 +208,7 @@ Content-Security-Policy: script-src 'nonce-r4nd0m' 'strict-dynamic'
 - No domain allowlist needed
 - You do not touch third-party scripts
 
-<!-- TALKING NOTES (slide 6 — ~4 min)
+<!-- TALKING NOTES (slide 10 — ~4 min)
 The nonce must be:
   - cryptographically random (use your framework's secure RNG, not Math.random())
   - different on every response (not cached)
@@ -213,7 +241,7 @@ Content-Security-Policy:
   frame-ancestors 'none'
 ```
 
-<!-- TALKING NOTES (slide 7 — ~4 min)
+<!-- TALKING NOTES (slide 11 — ~4 min)
 Walk through each directive:
 
 default-src 'none': everything blocked unless explicitly permitted. This is the right
@@ -262,7 +290,7 @@ Without `'unsafe-inline'`: Buttons render. Nothing happens when you click.
 
 Also need: `frame-src` and `connect-src` entries for their policy iframe and API.
 
-<!-- TALKING NOTES (slide 8 — ~4 min)
+<!-- TALKING NOTES (slide 12 — ~4 min)
 CookieInformation does document this fix — it is in their CSP implementation guide.
 But it requires you to edit their template and maintain the changes across updates.
 
@@ -287,7 +315,7 @@ GTM's nonce-aware container snippet supports passing on nonces (only necessary i
 
 The default snippet from GTM UI does not.
 
-<!-- TALKING NOTES (slide 9 — ~3 min)
+<!-- TALKING NOTES (slide 13 — ~2 min)
 URL pattern: https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX
 
 Call out that you need the official nonce-aware snippet from the GTM CSP docs:
@@ -312,7 +340,7 @@ even though `script-src`'s `'strict-dynamic'`/nonce protection against injected 
 
 **How to check:** open your GTM container URL directly and search for that line (https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX).
 
-<!-- TALKING NOTES (slide 9 — ~3 min)
+<!-- TALKING NOTES (slide 14 — ~3 min)
 The eval wrapper is there because Custom JavaScript Variables are literally evaluated
 strings — GTM calls eval() on the function body you typed into the UI.
 
@@ -355,7 +383,7 @@ if (queryPermission('access_globals', 'execute', 'CookieInformation.getConsentGi
 
 Declare `Accesses Global Variables → CookieInformation.getConsentGivenFor (execute)` in the **Permissions** tab.
 
-<!-- TALKING NOTES (slide 10 — ~4 min)
+<!-- TALKING NOTES (slide 15 — ~4 min)
 The permissions tab gotcha: permissions are NOT auto-populated when you paste in template
 code. You have to add the key manually. If you miss this step, the template silently
 returns undefined — easy to miss in testing because the trigger may still fire.
@@ -389,7 +417,7 @@ Active core tickets: [#59446](https://core.trac.wordpress.org/ticket/59446), [#3
 - Apply strict CSP to the public site only; use a loose policy (or none) for `/wp-admin`
 - Some scripts contain db data, so they cannot be allowlisted with hashes
 
-<!-- TALKING NOTES (slide 11 — ~3 min)
+<!-- TALKING NOTES (slide 16 — ~3 min)
 This is the honest "we did not solve everything" slide.
 
 The pragmatic answer is option 1: scope the policy to the public site.
@@ -421,7 +449,7 @@ Reporting-Endpoints: csp-endpoint="https://sentry.io/api/<project>/security/?sen
 
 Keep `report-uri` alongside `report-to` — Firefox only added `report-to` support in March 2026 (v149).
 
-<!-- TALKING NOTES (slide 12 — ~3 min)
+<!-- TALKING NOTES (slide 17 — ~3 min)
 This is the deployment strategy. You never enforce a new CSP on day one.
 Deploy report-only, watch the violations, fix them, then enforce.
 
@@ -449,6 +477,13 @@ scripts from *executing*. So a `script-src` violation can be your best signal:
 To be useful, your reports should surface exactly those — real sanitization
 failures in the app you are protecting.
 
+<!-- TALKING NOTES (slide 18 — ~1 min)
+Lead with the security framing: the whole reason to watch the report stream is that a
+blocked inline script might be a failed XSS attempt — evidence that something got past
+your output encoding and CSP stopped it on the way out. That is the signal worth
+protecting, and it is the frame for the categories on the next slide.
+-->
+
 ---
 
 ## Voilation reports: Signal vs. Noise
@@ -465,14 +500,12 @@ and noise from
 Category 3 is the most common source of persistent noise — and it **hides the
 attacker attempts** you actually want to see.
 
-<!-- TALKING NOTES (slide 13 — ~2 min)
-Lead with the security framing: the whole reason to watch the report stream is that
-a blocked inline script might be a failed XSS attempt — evidence that something got
-past your output encoding and CSP stopped it. That is the signal worth protecting.
-Briefly introduce the three categories. The next slide goes deep on extensions.
-Categories 1 and 2 are actionable and that is where you spend most of your time initially.
-Category 3 is where most long-term noise comes from — and it does real harm by burying
-genuine attack attempts, not just by being untidy.
+<!-- TALKING NOTES (slide 19 — ~2 min)
+Introduce the three categories of violation source. Categories 1 and 2 (your own code,
+third-party integrations) are actionable and that is where you spend most of your time
+initially. Category 3 (browser extensions) is where most long-term noise comes from —
+and it does real harm by burying genuine attack attempts, not just by being untidy.
+The next slide goes deep on extensions.
 -->
 
 ---
@@ -494,7 +527,7 @@ Blocked 'frame-src' from 'pwm-image.trendmicro.com'
 
 **These are not vulnerabilities in your application — but they bury the ones that are.**
 
-<!-- TALKING NOTES (slide 14 — ~3 min)
+<!-- TALKING NOTES (slide 20 — ~3 min)
 Triage heuristics:
 - Violations appearing across many unrelated users and pages = likely extension noise
 - Check source-file: chrome-extension:// or moz-extension:// is a strong signal
@@ -519,7 +552,7 @@ I opened a PR against Privacy Badger (EFF) to do exactly this:
 4. **Skip injection** when the policy would block it
 5. Alternatively, alter the header to allow your addition
 
-<!-- TALKING NOTES (slide 15 — ~3 min)
+<!-- TALKING NOTES (slide 21 — ~3 min)
 This is our own contribution — Privacy Badger PR #3200 ("Skip injectScript() on
 CSP-restricted pages"): https://github.com/EFForg/privacybadger/pull/3200
 It gates four feature detectors (fingerprinting, supercookies, script-clobbering check,
@@ -546,6 +579,13 @@ This is a good example to point extension developers in the audience towards.
 - Triage for two weeks, then promote to enforcement
 - Use `'strict-dynamic'` with nonces — not domain allowlists
 
+<!-- TALKING NOTES (slide 22 — ~1 min)
+First of three closing recommendation slides — keep each brief and actionable. Three
+audiences, three different actions, mapping straight back to the two levers from the
+numbers slide. For site owners: the report-only → enforce pipeline is low risk and
+immediately valuable.
+-->
+
 ---
 
 ## Recommendations
@@ -555,6 +595,12 @@ This is a good example to point extension developers in the audience towards.
 - Make `'strict-dynamic'` + a per-request nonce the **default**, not an opt-in recipe
 - Drop inline handlers and `eval` features — ship a CSP-compatible path instead
 - Treat "works under a nonce-based policy" as a support requirement
+
+<!-- TALKING NOTES (slide 23 — ~1 min)
+Every default that assumes 'unsafe-inline' is a tax on every site that integrates it.
+Adonis Shield and Rails are good examples of getting this right — a few lines of config
+away from a fully nonce-based strict-dynamic policy.
+-->
 
 ---
 
@@ -566,14 +612,12 @@ This is a good example to point extension developers in the audience towards.
 - Skip injections when the policy disallows it
 - Or, controversially add to the CSP header
 
-<!-- TALKING NOTES (slide 16 — ~2 min)
-Closing slide — keep it brief and actionable.
-Three audiences, three different actions — and they map straight back to the two levers
-from the numbers slide.
-For site owners: the report-only → enforce pipeline is low risk and immediately valuable.
-For framework/tool authors: every default that assumes 'unsafe-inline' is a tax on every
-site that integrates it. Adonis Shield and Rails are good examples of getting this right.
-For extension authors: Privacy Badger's commit is a concrete reference implementation.
+<!-- TALKING NOTES (slide 24 — ~1 min)
+Closing recommendation slide. Privacy Badger's commit (PR #3200) is a concrete reference
+implementation for extension authors: read the CSP header in
+webRequest.onHeadersReceived, skip injections when the policy disallows it. The
+alternative — controversially adding to the CSP header instead of skipping — is more
+invasive but worth a one-line mention.
 -->
 
 ---
@@ -590,7 +634,7 @@ Resources:
 - [Privacy Badger CSP fix PR #3200](https://github.com/EFForg/privacybadger/pull/3200)
 - [WordPress core ticket #39941](https://core.trac.wordpress.org/ticket/39941)
 
-<!-- TALKING NOTES (slide 17 — Q&A)
+<!-- TALKING NOTES (slide 25 — Q&A)
 Likely questions to prepare for:
 
 Q: What about CSP in a <meta> tag instead of a response header?
@@ -618,18 +662,19 @@ A: It reduces the attack surface significantly even if it is not airtight.
 | Section | Slides | Time |
 |---|---|---|
 | Hook + data | 1–3 | ~6 min |
-| What unsafe-* means | 4–5 | ~5 min |
-| The fix (nonces + strict-dynamic) | 6–7 | ~8 min |
-| Real-world cases (CookieInformation, GTM, WP admin) | 8–11 | ~14 min |
-| Report-only deployment | 12 | ~3 min |
-| Violation noise + extensions | 13–15 | ~8 min |
-| Recommendations | 16 | ~2 min |
-| **Total talk** | | **~46 min** |
+| Why adoption is stuck + unsafe-* costs | 4–7 | ~10 min |
+| The fix (strict-dynamic + nonces) | 8–11 | ~10 min |
+| Real-world cases (CookieInformation, GTM, WP admin) | 12–16 | ~16 min |
+| Report-only deployment | 17 | ~3 min |
+| Violation noise + extensions | 18–21 | ~9 min |
+| Recommendations | 22–24 | ~3 min |
+| **Total talk** | | **~57 min** |
 | Q&A | | ~10 min |
-| **Total with Q&A** | | **~56 min** |
+| **Total with Q&A** | | **~67 min** |
 
-Fits comfortably in a **60-minute slot**. If you need a 45-minute slot, trim the
-real-world cases section to one example (GTM is the most novel) and cut the extension
-noise slides to one — saves ~10 minutes.
+Fits comfortably in a **60–75 minute slot**. If you only have 60 minutes, trim the
+real-world cases section to one example (GTM is the most novel) — saves ~10 minutes.
+For a 45-minute slot, additionally cut the WordPress admin slide and merge the three
+recommendation slides back into one — saves another ~5 minutes.
 
 <!-- NOTE: This page is for your planning reference only — remove it before presenting. -->
