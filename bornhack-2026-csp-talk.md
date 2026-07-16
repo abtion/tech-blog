@@ -2,6 +2,28 @@
 marp: true
 theme: default
 paginate: true
+style: |
+  h2 { color: #2c5aa0; }
+  .bars { margin-top: 0.7em; }
+  .bar-row { display: flex; align-items: center; margin: 10px 0; }
+  .bar-row .label { width: 44%; text-align: right; padding-right: 14px; font-size: 0.8em; }
+  .bar-row .bar { height: 26px; border-radius: 4px; min-width: 4px; }
+  .bar-row .pct { padding-left: 10px; font-weight: bold; white-space: nowrap; }
+  .bad    { background: #e74c3c; }
+  .allow  { background: #95a5a6; }
+  .nonce  { background: #f5b041; }
+  .strict { background: #27ae60; }
+  .none   { background: #5d6d7e; }
+  mark.good { background: #d4f7d4; padding: 0 4px; border-radius: 3px; }
+  mark.bad  { background: #fbdcdc; padding: 0 4px; border-radius: 3px; }
+  .timeline { display: flex; justify-content: space-between; margin-top: 1.5em; }
+  .tl-item { text-align: center; flex: 1; }
+  .tl-dot { width: 18px; height: 18px; border-radius: 50%; background: #95a5a6; margin: 0 auto 10px; }
+  .tl-dot.ok  { background: #27ae60; }
+  .tl-dot.bad { background: #e74c3c; }
+  .trust-chain { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 1em; flex-wrap: wrap; }
+  .trust-box { border: 2px solid #27ae60; background: #eafaf1; border-radius: 6px; padding: 10px 14px; font-size: 0.75em; }
+  .trust-arrow { font-size: 1.3em; color: #27ae60; }
 ---
 
 # Stop Injected JavaScript with CSP: Defense in Depth That Works
@@ -23,29 +45,29 @@ Estimated talk length: ~35–40 minutes + Q&A.
 ## Quick show of hands
 
 - Who has made a webapp / website?
+- Who has heard of `Content-Security-Policy`?
 - Who has configured `Content-Security-Policy`?
 - Of those: who is doing it *without* `'unsafe-inline'` in `script-src`?
 - Who has heard of `'strict-dynamic'`?
 - Who is using it?
 
 <!-- TALKING NOTES (slide 2 — ~2 min)
-This is a quick audience calibration. Pause and wait for hands.
-The gap between "has CSP" and "uses strict-dynamic" is usually large — that gap is what the
-whole talk is about.
+To get a sense of your knowledge
 -->
 
 ---
 
 ## The numbers
 
-June 2026 (Tranco Top 1 Million crawl):
+June 2026 (Tranco Top 1 Million crawl) — 170,057 sites have a `Content-Security-Policy` header:
 
-- 170,057 sites have a `Content-Security-Policy` header
-- **125469 (73.8%)** no script restriction at all, or `'unsafe-inline'` still allowed
-- **2221 (1.3%)** Host/scheme allowlist or 'self' only (no nonce / hashes)
-- **38882 + 727 (23%)** use a nonce / hash ()
-- **2569 (1.5%)** use `'strict-dynamic'`
-- **189 (0.1%)** use 'none' (blocks all scripts)
+<div class="bars">
+  <div class="bar-row"><span class="label">No restriction / 'unsafe-inline'</span><div class="bar bad" style="width:73.8%"></div><span class="pct">125,469 (73.8%)</span></div>
+  <div class="bar-row"><span class="label">Allowlist only (no nonce/hash)</span><div class="bar allow" style="width:1.3%"></div><span class="pct">2,221 (1.3%)</span></div>
+  <div class="bar-row"><span class="label">Nonce / hash</span><div class="bar nonce" style="width:23%"></div><span class="pct">39,609 (23%)</span></div>
+  <div class="bar-row"><span class="label">'strict-dynamic'</span><div class="bar strict" style="width:1.5%"></div><span class="pct">2,569 (1.5%)</span></div>
+  <div class="bar-row"><span class="label">'none' (blocks all scripts)</span><div class="bar none" style="width:0.1%"></div><span class="pct">189 (0.1%)</span></div>
+</div>
 
 And **41.9%** still include `'unsafe-eval'`
 
@@ -102,9 +124,9 @@ This tells the browser:
 
 That includes the ones *an attacker injected*.
 
-- Reflected XSS payload in a query parameter? Executes.
-- Stored XSS in a comment field? Executes.
-- Supply-chain compromise injecting a `<script>` tag? Executes.
+- Reflected XSS payload in a query parameter? <mark class="bad">Executes.</mark>
+- Stored XSS in a comment field? <mark class="bad">Executes.</mark>
+- Supply-chain compromise injecting a `<script>` tag? <mark class="bad">Executes.</mark>
 
 **CSP with `'unsafe-inline'` does not stop XSS.**
 
@@ -166,6 +188,12 @@ broadly. This pain is exactly why 'strict-dynamic' exists — next slide.
 The fix has been ready for years. A 2016 Google Research study proposed `'strict-dynamic'` —
 and it has had broad browser support since March 2022
 
+<div class="timeline">
+  <div class="tl-item"><div class="tl-dot"></div>2016<br><small>proposed</small></div>
+  <div class="tl-item"><div class="tl-dot ok"></div>March 2022<br><small>universal browser support</small></div>
+  <div class="tl-item"><div class="tl-dot bad"></div>2026<br><small>~1.5% adoption</small></div>
+</div>
+
 <!-- TALKING NOTES (slide 8 — ~1 min)
 Emphasize the timeline: proposed in 2016, universally supported since Safari added it in
 March 2022. That is four years of full browser support with adoption still stuck around
@@ -210,6 +238,14 @@ Content-Security-Policy: script-src 'nonce-r4nd0m' 'strict-dynamic'
 - Any script loaded by a nonced script is also trusted
 - No domain allowlist needed
 - You do not touch third-party scripts
+
+<div class="trust-chain">
+  <div class="trust-box">Entry script<br><code>nonce="r4nd0m"</code></div>
+  <span class="trust-arrow">➔ loads</span>
+  <div class="trust-box">3rd-party script<br>(no nonce, trusted)</div>
+  <span class="trust-arrow">➔ loads</span>
+  <div class="trust-box">Another script<br>(also trusted)</div>
+</div>
 
 <!-- TALKING NOTES (slide 10 — ~4 min)
 The nonce must be:
@@ -338,10 +374,12 @@ The problem: **Custom JavaScript Variables use `eval()`.**
 w[g].e = function(s) { return eval(s); };
 ```
 
-If this line is in your container, you need `'unsafe-eval'` — which is another open door to string-to-code injection (classic `eval`/`Function` payloads),
-even though `script-src`'s `'strict-dynamic'`/nonce protection against injected `<script>` tags is untouched.
+If this line is in your container, you need `'unsafe-eval'` — another open door to
+string-to-code injection. `'strict-dynamic'`/nonce protection against injected `<script>` tags stays intact either way.
 
-**How to check:** open your GTM container URL directly and search for that line (https://www.googletagmanager.com/gtm.js?id=GTM-XXXXXX).
+**How to check:** open your GTM container URL and search for that line.
+
+![width:420px](images/gtm-eval-in-container.png)
 
 <!-- TALKING NOTES (slide 14 — ~3 min)
 The eval wrapper is there because Custom JavaScript Variables are literally evaluated
@@ -575,7 +613,7 @@ This is a good example to point extension developers in the audience towards.
 
 ## Recommendations
 
-**If you run a website:**
+**🌐 If you run a website:**
 
 - Deploy `Content-Security-Policy-Report-Only` today
 - Connect it to Sentry (or any reporting endpoint)
@@ -593,7 +631,7 @@ immediately valuable.
 
 ## Recommendations
 
-**If you build frameworks or tools:**
+**🛠️ If you build frameworks or tools:**
 
 - Make `'strict-dynamic'` + a per-request nonce the **default**, not an opt-in recipe
 - Drop inline handlers and `eval` features — ship a CSP-compatible path instead
@@ -609,7 +647,7 @@ away from a fully nonce-based strict-dynamic policy.
 
 ## Recommendations
 
-**If you build browser extensions:**
+**🧩 If you build browser extensions:**
 
 - Read the CSP header in `webRequest.onHeadersReceived`
 - Skip injections when the policy disallows it
