@@ -13,6 +13,8 @@ It does not remove XSS bugs, but it can stop many exploits from turning into Jav
 
 In practical terms, CSP is a safety net around your rendering layer: if attacker-controlled input slips through your sanitization and output encoding, a well-configured policy can still prevent the payload from running.
 
+A June 2026 crawl of the Tranco Top 1 Million sites found 170,057 with a CSP — yet **46.8% still contain `'unsafe-inline'`** somewhere in the policy, and 41.9% allow `'unsafe-eval'`.[^csp-2026] Re-parsing the raw data directive-by-directive[^csp-own-analysis] tells a starker story: **73.8% of these "CSP" sites would not stop an injected `<script>` tag from running** — either the policy sets no `script-src`, `script-src-elem`, or `default-src` at all, or it does but still allows `'unsafe-inline'`. Only around a quarter of sites with a CSP meaningfully restrict what scripts can run.
+
 # Example of injection
 
 Suppose a page has a login form and reflects a query parameter (say, a pre-filled username) directly into the DOM without encoding it:
@@ -50,11 +52,10 @@ You can also set an allowlist of domains, list allowed hashes of sources, and se
 This must be done for the entire chain; meaning if a script inserts another `<script>` tag, it must also be allowed in the allowlist, or hashes, or have the nonce attribute.
 The chain is hard to maintain, if you use external scripts that are out of your control.
 
-# CSP: dropping `'unsafe-inline'` — a practical path to `'strict-dynamic'`
+# Dropping `'unsafe-inline'` — a practical path with `'strict-dynamic'`
 
-CSP is widely deployed but rarely effective.
-A June 2026 crawl of the Tranco Top 1 Million sites found 170,057 with a CSP — yet **46.8% still contain `'unsafe-inline'`**, 41.9% allow `'unsafe-eval'`, and only 24.7% carry a nonce.
-Just **1.6% use `'strict-dynamic'`**, the one directive that makes a script policy actually hold up.[^csp-2026]
+In the June 2026 crawl only 24.7% of the sites with CSP used a nonce.
+Just **1.6% use `'strict-dynamic'`**.[^csp-2026]
 
 `'strict-dynamic'` lets you drop `'unsafe-inline'`, domain allowlists, and most of the ongoing maintenance burden.
 `'strict-dynamic'` was proposed as the fix back in a 2016 Google Research study — the same study that found 94.68% of script-restricting policies were ineffective and 99.34% of CSP hosts gained no XSS benefit at all.[^csp-stats]
@@ -427,6 +428,8 @@ An example of an extension being a respectful citizen of the pages it runs on.
 [^csp-allowlist-weakness]: See Weichselbaum et al. (above) for detailed analysis of why allowlist-based CSP is fundamentally weak.
 
 [^csp-2026]: Scott Helme. *Top 1 Million Analysis — June 2026: Ten Years of Web Security*. [scotthelme.co.uk](https://scotthelme.co.uk/top-1-million-analysis-june-2026-ten-years-of-web-security/). Crawl of 819,002 responding sites from the Tranco Top 1 Million list. Of 170,057 sites with a CSP: 46.8% use `'unsafe-inline'`, 41.9% use `'unsafe-eval'`, 24.7% use a nonce, 1.6% use `'strict-dynamic'`.
+
+[^csp-own-analysis]: Own analysis of the raw per-policy crawl data underlying [^csp-2026] (Crawler.Ninja, crawl dated 13 June 2026, script in `scripts/analyze_csp.py`). Matches the cited report on total sites (170,057) and `'unsafe-inline'` presence (79,483 vs. reported 79,464). We categorized each policy by what actually governs the directive that controls `<script>` elements per CSP3 (`script-src-elem` > `script-src` > `default-src`; `script-src-attr`, which governs event-handler attributes rather than `<script>` tags, is deliberately excluded), classifying by the mechanism that protects it — `'strict-dynamic'` > nonce > hash > a live `'unsafe-inline'` > `'none'` > allowlist — so a redundant `'unsafe-inline'` alongside a nonce/hash/`'strict-dynamic'` (which browsers ignore) doesn't get counted as a separate "neutralized" case. 52.1% of CSP sites set none of those three directives at all, and a further 21.7% set one but rely on a live `'unsafe-inline'` — combined, 73.8% would not stop an injected `<script>` tag. The remaining 26.2% restrict scripts, mostly via a nonce (22.9%), with the rest split across `'strict-dynamic'` (1.5%), hashes (0.4%), host/scheme allowlists (1.3%), or `'none'` (0.1%).
 
 [^strict-dynamic]: `'strict-dynamic'` was supported in Chrome and Firefox from 2016–2017, with Safari adding support in version 15.4 (March 2022), making it universally available across all major browsers. See [caniuse](https://caniuse.com/?search=strict-dynamic). If you need to support older browsers, you can include explicit fallback source expressions in the same `script-src` directive — modern browsers that understand `'strict-dynamic'` will ignore them, while older browsers will use them.
 
