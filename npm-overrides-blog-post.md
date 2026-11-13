@@ -127,9 +127,9 @@ Use one when the situation genuinely calls for it:
 
 - **A reachable runtime vulnerability, with no fixed parent release.**
   If attacker-controlled input can reach the vulnerable code in production, waiting for upstream is often not acceptable.
-- **A fix within a range the parent supports.**
-  A parent that pins an exact version — `"pkg": "1.2.3"` — blocks a patch release that is fully compatible.
-  Overriding to `1.2.4` keeps the parent within its own contract.
+- **A patch release blocked by an exact pin.**
+  A parent that pins an exact version — `"pkg": "1.2.3"` — also blocks the `1.2.4` that fixes the vulnerability.
+  Overriding to `1.2.4` still steps outside what the parent declared, so run its tests against the new version — but a patch release is meant to be compatible, so the risk is far smaller than when crossing a major.
 - **Deduplicating a package that must be a singleton.**
   Libraries such as React or `graphql` break in confusing ways when two copies end up in the tree.
 - **A temporary fork while an upstream fix is pending**, via an alias such as `"pkg": "npm:@your-org/pkg@1.2.4-fix.1"`.
