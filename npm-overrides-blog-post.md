@@ -129,7 +129,8 @@ Most alerts are resolved before step 5.
 
 4. **Shrink what reaches production.**
    Move build-only tools to `devDependencies`, so `npm ci --omit=dev` keeps them out of the production image.
-   Look for packages that end up in production only because a library declares a build tool as a required `peerDependency` or a plain `dependency` — a one-line pull request upstream often fixes that for everyone.
+   Look for packages that end up in production only because a library lists a build tool under `dependencies` — a one-line pull request upstream often fixes that for everyone.
+   Peers are less straightforward: npm still installs a package under `--omit=dev` when it is one of your `devDependencies` _and_ an optional peer of a production dependency.[^dev-optional]
 
 5. **Override, deliberately, if none of the above works.**
 
@@ -187,12 +188,14 @@ When you do, make the override as small and as temporary as possible:
 ### For library authors
 
 - Bundle dependencies only when you must — a bundled copy is invisible to your users' security tooling.
-- Mark build tools as optional peers (`peerDependenciesMeta`) so they stay out of your users' production installs.
+- List build tools under `devDependencies`, or as optional peers, rather than under `dependencies`.
 - Widen your ranges promptly when a dependency ships a security fix in a new major.
 - Review and release pull requests that only widen a dependency range — they unblock every user who would otherwise reach for an override.
 
 ---
 
 [^npm-overrides]: npm docs: [`overrides` in package.json](https://docs.npmjs.com/cli/v11/configuring-npm/package-json#overrides). Available since npm 8.3.
+
+[^dev-optional]: npm marks such a package `devOptional`, and `--omit=dev` only leaves out packages that are needed for development alone. Reported in [npm/cli#7740](https://github.com/npm/cli/issues/7740) and [npm/cli#7772](https://github.com/npm/cli/issues/7772); still the behaviour in npm 11.19.1.
 
 [^arborist]: npm's dependency resolver, `@npmcli/arborist`, matches an override to a dependency edge in `lib/override-set.js` with `semver.intersects(edgeSpec, ruleKeySpec)`. Checked against npm 11.19.1.
