@@ -103,22 +103,35 @@ It is common to find a mature project with a dozen or more, most without a note 
 ## What to do instead
 
 Work through these in order.
-Most alerts are resolved before step 4.
+Most alerts are resolved before step 5.
 
 1. **Update the parent.**
    `npm update <vulnerable-pkg>` updates a transitive dependency within the ranges its parents allow — often all it takes.
    If the parent's range is the blocker, check for a newer release of the parent and upgrade that.
 
-2. **Check whether the vulnerable code is reachable.**
+2. **Check upstream — and help move it along.**
+   Search the parent's issues and pull requests for the vulnerable package or the advisory ID.
+   Someone has often already asked, and a pull request widening the range may be waiting for review.
+   - **If there is a pull request**, run your test suite against it and report the result on the pull request — a maintainer is far more likely to merge a change that users have confirmed works.
+     Add a 👍 reaction instead of a "+1" comment.
+   - **If there is only an issue**, consider opening the pull request yourself.
+     Widening a dependency range is frequently a one-line change plus a test run.
+   - **If there is nothing**, open an issue that names the advisory, the parent's current range and the first fixed version.
+   - **If it has stalled**, a short, polite question about what is blocking it often helps more than another report.
+
+   Link whatever you find or open next to the alert.
+   It tells you when to revisit, and it is the removal condition if you do end up overriding.
+
+3. **Check whether the vulnerable code is reachable.**
    Many advisories in packages like `glob`, `minimatch` or `brace-expansion` need an attacker to control a glob pattern.
    If the only callers are your linter, test runner and bundler, running on patterns you wrote, the risk is close to zero.
    Dismiss the alert with a reason — GitHub offers _tolerable risk_ and _vulnerable code is not actually used_ — and write down what you are waiting for.
 
-3. **Shrink what reaches production.**
+4. **Shrink what reaches production.**
    Move build-only tools to `devDependencies`, so `npm ci --omit=dev` keeps them out of the production image.
    Look for packages that end up in production only because a library declares a build tool as a required `peerDependency` or a plain `dependency` — a one-line pull request upstream often fixes that for everyone.
 
-4. **Override, deliberately, if none of the above works.**
+5. **Override, deliberately, if none of the above works.**
 
 ## When an override is the right call
 
@@ -154,6 +167,8 @@ When you do, make the override as small and as temporary as possible:
 ### For developers
 
 - Run `npm update <pkg>` and upgrade the parent before you consider an override.
+- Search the parent's issues and pull requests before you work around it.
+- Test an open upstream pull request and report the result on it; open the pull request yourself when the fix is a range change.
 - Check whether the vulnerable code is reachable, and whether the parent imports or bundles it, before you change anything.
 - Dismiss unreachable dev-tooling alerts with a written reason instead of silencing them with an override.
 - Move build-only packages to `devDependencies`.
@@ -165,6 +180,7 @@ When you do, make the override as small and as temporary as possible:
 
 - Treat a new override as a design decision, not a lockfile detail.
 - Ask whether the vulnerable code is reachable and whether the override actually removes it.
+- Ask for the link to the upstream issue or pull request that will make the override unnecessary.
 - Reject open-ended keys that would also catch future majors.
 - Review existing overrides when the packages they affect are upgraded, and delete the ones whose reason is gone.
 
@@ -173,6 +189,7 @@ When you do, make the override as small and as temporary as possible:
 - Bundle dependencies only when you must — a bundled copy is invisible to your users' security tooling.
 - Mark build tools as optional peers (`peerDependenciesMeta`) so they stay out of your users' production installs.
 - Widen your ranges promptly when a dependency ships a security fix in a new major.
+- Review and release pull requests that only widen a dependency range — they unblock every user who would otherwise reach for an override.
 
 ---
 
