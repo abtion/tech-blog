@@ -1,14 +1,12 @@
-# CSP in 2026: Blog Post and Presentation
+# Abtion Tech Blog
 
-This repository contains:
-
-- A blog post about practical CSP deployment
-- A presentation deck for BornHack 2026
+Blog posts and talks from the developers at Abtion. See `WRITING_STYLE.md` for tone and conventions.
 
 ## Live on GitHub Pages
 
 - Site index: https://abtion.github.io/tech-blog/
-- Blog post: https://abtion.github.io/tech-blog/csp-blog-post/
-- Presentation slides: https://abtion.github.io/tech-blog/bornhack-2026-csp-talk.html
+- npm overrides: https://abtion.github.io/tech-blog/npm-overrides/
+- CSP blog post: https://abtion.github.io/tech-blog/csp-blog-post/
+- CSP presentation slides (BornHack 2026): https://abtion.github.io/tech-blog/bornhack-2026-csp-talk.html
 
 If these links return 404, enable GitHub Pages in repository settings and select GitHub Actions as the source.
