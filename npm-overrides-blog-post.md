@@ -19,6 +19,9 @@ A few lines of `overrides` in `package.json`, a fresh lockfile, and the alert tu
 }
 ```
 
+It is also the advice you are most likely to find.
+When a glob advisory landed recently, the only community reply on a popular test runner's tracking issue was exactly this snippet, offered as the workaround until a fix ships.
+
 It works, and it is often the wrong tool.
 **An override closes the alert by changing what the lockfile says. Whether it fixes the vulnerability, and what it breaks along the way, are separate questions** — and the answers are frequently "no" and "more than you think".
 
@@ -83,6 +86,11 @@ Nothing in CI tells you a package is now running on a major it does not support.
 **Bound the key to the vulnerable range from the advisory** — `"minimatch@>=7 <11.0.1"`, not `"minimatch@>=7"`.
 It still matches every range that can resolve to a vulnerable version, and it stops matching once the ecosystem moves past it.
 
+A bounded key is only as good as the advisory's range, though.
+glob's recent AbortSignal advisory is fixed in 14.0.2, and the maintainer backported the fix to the 13.x line as 13.0.7 — but at the time of writing, the advisory still lists everything up to 14.0.1 as affected.
+So `"glob@>=9 <14.0.2"` still forces parents that ask for `^13` onto a new major — and `npm update` would already have given them the fixed 13.0.7.
+Before you override, compare the advisory's range with the package's actual releases (see step 2 below).
+
 ## Problem 3: you break the parent's contract
 
 A dependency range is a statement from the package's maintainers: _we have tested with this_.
@@ -112,12 +120,24 @@ Most alerts are resolved before step 5.
 2. **Check upstream — and help move it along.**
    Search the parent's issues and pull requests for the vulnerable package or the advisory ID.
    Someone has often already asked, and a pull request widening the range may be waiting for review.
-   - **If there is a pull request**, run your test suite against it and report the result on the pull request — a maintainer is far more likely to merge a change that users have confirmed works.
-     Add a 👍 reaction instead of a "+1" comment.
+   - **If there is a pull request**, add a 👍 reaction — not a "+1" comment.
+     Comment only when you can add something the maintainers do not already have.
+     Their CI usually runs the changed code on more platforms than you can, and your own test suite may never reach it: check that it does before you report "all green".
+     A failure, a real-world case their tests miss, or a check against the published package is worth a comment; a repeat of green CI is noise.
    - **If there is only an issue**, consider opening the pull request yourself.
      Widening a dependency range is frequently a one-line change plus a test run.
    - **If there is nothing**, open an issue that names the advisory, the parent's current range and the first fixed version.
-   - **If it has stalled**, a short, polite question about what is blocking it often helps more than another report.
+   - **If it has stalled**, nudge — carefully:
+     - Read the thread first; if someone pinged the maintainer this week, another ping adds nothing.
+     - Look at the maintainer's activity elsewhere, to tell "busy" from "abandoned".
+     - @-mention the maintainer — a "friendly ping" that names nobody may notify nobody.
+     - Open with the concrete action you need.
+       It is often something small and invisible from the outside, such as approving the CI run for a first-time contributor, or cutting a release.
+
+   **Check the advisory, too.**
+   Advisory data is maintained by people and lags behind releases.
+   If the package has shipped a fix on the major your parent already accepts, but the advisory still lists that version as affected, `npm update` is the fix and the advisory is what needs correcting.
+   Look for an open correction in [`github/advisory-database`](https://github.com/github/advisory-database), back it, or suggest one from the advisory page.
 
    Link whatever you find or open next to the alert.
    It tells you when to revisit, and it is the removal condition if you do end up overriding.
@@ -169,7 +189,9 @@ When you do, make the override as small and as temporary as possible:
 
 - Run `npm update <pkg>` and upgrade the parent before you consider an override.
 - Search the parent's issues and pull requests before you work around it.
-- Test an open upstream pull request and report the result on it; open the pull request yourself when the fix is a range change.
+- 👍 an open upstream pull request; comment only with evidence its CI and description do not already show. Open the pull request yourself when the fix is a range change.
+- When upstream has stalled, @-mention the maintainer and ask for one concrete action.
+- Compare the advisory's affected range with the package's releases; back or suggest a correction when a fixed version is still flagged.
 - Check whether the vulnerable code is reachable, and whether the parent imports or bundles it, before you change anything.
 - Dismiss unreachable dev-tooling alerts with a written reason instead of silencing them with an override.
 - Move build-only packages to `devDependencies`.
